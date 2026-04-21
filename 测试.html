@@ -2,50 +2,56 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>麻将测试数据编辑器 - 体验优化版</title>
+    <title>麻将测试数据编辑器 - 完美冻结版</title>
     <style>
         body { font-family: "Microsoft YaHei", sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; margin: 0; }
         .header-area { margin-bottom: 10px; }
         .controls { margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
         
-        /* 表格容器优化：固定高度，使横向滚动条始终可见 */
+        /* 表格容器：固定高度，横向滚动条始终在视口底部 */
         .table-container { 
             width: 100%; 
-            height: calc(100vh - 130px); /* 自动计算高度，预留出顶部按钮位置 */
-            overflow: auto; /* 开启双向滚动 */
+            height: calc(100vh - 130px); 
+            overflow: auto; 
             background: white; 
             border-radius: 4px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
         }
 
-        table { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; } /* 使用固定布局控制宽度 */
+        table { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; }
 
         th, td { 
             border-bottom: 1px solid #e8e8e8; 
             border-right: 1px solid #e8e8e8; 
             padding: 8px; 
             background: white;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            word-break: break-all;
         }
 
-        /* --- 宽度精准分配 --- */
-        /* 列1：操作 (较窄) */
-        .col-op { width: 50px; position: sticky; left: 0; z-index: 10; }
-        /* 列2：用例ID */
-        .col-id { width: 130px; position: sticky; left: 50px; z-index: 10; }
-        /* 列3：场景标签 */
-        .col-tag { width: 140px; position: sticky; left: 180px; z-index: 10; }
-        /* 列4：手牌编码 (最宽) */
-        .col-hand { width: 420px; position: sticky; left: 320px; z-index: 10; border-right: 2px solid #1890ff !important; }
-        /* 其他普通属性列 (窄列) */
+        /* --- 核心：冻结前四列的精确计算 --- */
+        /* 列1：操作 (50px) */
+        .col-op { width: 50px; position: sticky; left: 0; z-index: 20; }
+        /* 列2：用例ID (130px) */
+        .col-id { width: 130px; position: sticky; left: 50px; z-index: 20; }
+        /* 列3：场景标签 (140px) */
+        .col-tag { width: 140px; position: sticky; left: 180px; z-index: 20; }
+        /* 列4：手牌编码 (420px) */
+        .col-hand { 
+            width: 420px; 
+            position: sticky; 
+            left: 320px; 
+            z-index: 20; 
+            border-right: 3px solid #1890ff !important; /* 冻结边界线 */
+        }
+        
+        /* 属性列宽 (90px) */
         .col-attr { width: 90px; }
 
-        th { background-color: #fafafa !important; font-weight: bold; border-top: 1px solid #e8e8e8; z-index: 11 !important; }
-        td:nth-child(-n+4) { background-color: #fff; }
-        tr:hover td { background-color: #f5f7fa; }
-        tr:hover td:nth-child(-n+4) { background-color: #f5f7fa; }
-
+        /* 确保表头在滚动时层级最高 */
+        th { background-color: #fafafa !important; font-weight: bold; border-top: 1px solid #e8e8e8; z-index: 21 !important; }
+        /* 确保冻结列在悬停时颜色一致 */
+        tr:hover td { background-color: #f5f7fa !important; }
+        
         .mj-view { 
             display: flex; flex-wrap: wrap; gap: 2px; margin-top: 5px; 
             min-height: 45px; background: #f9f9f9; padding: 4px; border-radius: 4px;
@@ -55,7 +61,7 @@
         input[type="text"] { 
             width: 100%; padding: 6px; border: 1px solid #d9d9d9; border-radius: 3px; box-sizing: border-box; font-size: 13px;
         }
-        .hand-code-input { font-family: monospace; color: #1890ff; font-size: 12px; }
+        .hand-code-input { font-family: monospace; color: #1890ff; font-size: 11px; }
 
         button { cursor: pointer; padding: 6px 12px; border: none; border-radius: 4px; background: #1890ff; color: white; font-size: 13px; }
         .btn-danger { background: #ff4d4f; }
@@ -65,7 +71,7 @@
 <body>
 
     <div class="header-area">
-        <h3 style="margin:5px 0;">🀄 棋牌测试编辑器 (滚动条优化版)</h3>
+        <h3 style="margin:5px 0;">🀄 棋牌测试编辑器 (前四列冻结优化版)</h3>
     </div>
     
     <div class="controls">
@@ -86,25 +92,25 @@
                 </colgroup>
             <thead>
                 <tr id="headerRow">
-                    <th>操作</th>
-                    <th contenteditable="true">用例ID</th>
-                    <th contenteditable="true">场景标签</th>
-                    <th contenteditable="true">手牌编码</th>
+                    <th class="col-op">操作</th>
+                    <th class="col-id" contenteditable="true">用例ID</th>
+                    <th class="col-tag" contenteditable="true">场景标签</th>
+                    <th class="col-hand" contenteditable="true">手牌编码</th>
                     <th class="col-attr" contenteditable="true">人数</th>
                     <th class="col-attr" contenteditable="true">刻子数</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td><button class="btn-danger" onclick="removeRow(this)">删</button></td>
-                    <td><input type="text" value="TC_001"></td>
-                    <td><input type="text" value="清一色"></td>
-                    <td>
+                    <td class="col-op"><button class="btn-danger" onclick="removeRow(this)">删</button></td>
+                    <td class="col-id"><input type="text" value="TC_001"></td>
+                    <td class="col-tag"><input type="text" value="清一色示例"></td>
+                    <td class="col-hand">
                         <input type="text" class="hand-code-input" value="0x01,0x02,0x03" oninput="updateVisual(this)">
                         <div class="mj-view"></div>
                     </td>
-                    <td><input type="text" value="4"></td>
-                    <td><input type="text" value="0"></td>
+                    <td class="col-attr"><input type="text" value="4"></td>
+                    <td class="col-attr"><input type="text" value="0"></td>
                 </tr>
             </tbody>
         </table>
@@ -138,17 +144,22 @@
 
     function addRow() {
         const tbody = document.getElementById('tableBody');
-        const colCount = document.getElementById('headerRow').cells.length;
+        const headerCells = document.getElementById('headerRow').cells;
         const tr = document.createElement('tr');
-        let html = `<td><button class="btn-danger" onclick="removeRow(this)">删</button></td>`;
-        for(let i = 1; i < colCount; i++) {
-            if (i === 3) { // 第四列
-                html += `<td><input type="text" class="hand-code-input" oninput="updateVisual(this)"><div class="mj-view"></div></td>`;
+        
+        for(let i = 0; i < headerCells.length; i++) {
+            const cell = tr.insertCell(-1);
+            // 同步表头的类名以确保冻结效果生效
+            if(headerCells[i].className) cell.className = headerCells[i].className;
+            
+            if (i === 0) {
+                cell.innerHTML = `<button class="btn-danger" onclick="removeRow(this)">删</button>`;
+            } else if (i === 3) {
+                cell.innerHTML = `<input type="text" class="hand-code-input" oninput="updateVisual(this)"><div class="mj-view"></div>`;
             } else {
-                html += `<td><input type="text"></td>`;
+                cell.innerHTML = `<input type="text">`;
             }
         }
-        tr.innerHTML = html;
         tbody.appendChild(tr);
     }
 
@@ -164,7 +175,9 @@
 
         const rows = document.getElementById('tableBody').rows;
         for(let i = 0; i < rows.length; i++) {
-            rows[i].insertCell(-1).innerHTML = `<input type="text">`;
+            const cell = rows[i].insertCell(-1);
+            cell.className = "col-attr";
+            cell.innerHTML = `<input type="text">`;
         }
     }
 
@@ -193,13 +206,16 @@
         const reader = new FileReader();
         reader.onload = function(e) {
             const lines = e.target.result.split(/\r?\n/).filter(l => l.trim() !== "");
-            document.getElementById('headerRow').innerHTML = '<th>操作</th>';
+            document.getElementById('headerRow').innerHTML = '<th class="col-op">操作</th>';
             document.getElementById('tableBody').innerHTML = '';
             
-            // 解析表头并应用宽度
-            parseCSVLine(lines[0]).forEach((h, idx) => {
+            const headers = parseCSVLine(lines[0]);
+            headers.forEach((h, idx) => {
                 const th = document.createElement('th');
-                if(idx > 2) th.className = "col-attr"; // 给后面的列默认窄列宽
+                if(idx === 0) th.className = "col-id";
+                else if(idx === 1) th.className = "col-tag";
+                else if(idx === 2) th.className = "col-hand";
+                else th.className = "col-attr";
                 th.contentEditable = "true";
                 th.innerText = h;
                 document.getElementById('headerRow').appendChild(th);
@@ -214,7 +230,7 @@
                         const inputField = cell.querySelector('input');
                         if(inputField) {
                             inputField.value = data;
-                            if(dIdx === 2) updateVisual(inputField); // 第四列索引是2（去掉操作列后）
+                            if(dIdx === 2) updateVisual(inputField);
                         }
                     }
                 });
