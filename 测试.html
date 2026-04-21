@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>麻将测试工具 - 冻结前四列版</title>
+    <style>
+        body { font-family: "Microsoft YaHei", sans-serif; padding: 20px; background-color: #f0f2f5; color: #333; }
+        .header-area { margin-bottom: 20px; }
+        .controls { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+        
+        /* 表格容器 */
+        .table-container { 
+            width: 100%; 
+            overflow-x: auto; 
+            background: white; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+        }
+
+        table { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: auto; }
+
+        th, td { 
+            border-bottom: 1px solid #e8e8e8; 
+            border-right: 1px solid #e8e8e8; 
+            padding: 12px; 
+            white-space: nowrap; 
+            background: white;
+            min-width: 100px;
+        }
+
+        /* --- 冻结前四列的核心逻辑 --- */
+        /* 列宽预设值用于计算固定位置：列1(70px), 列2(150px), 列3(150px), 列4(400px) */
+        
+        /* 第一列：操作 */
+        th:nth-child(1), td:nth-child(1) { position: sticky; left: 0; z-index: 10; width: 70px; min-width: 70px; }
+        /* 第二列 */
+        th:nth-child(2), td:nth-child(2) { position: sticky; left: 70px; z-index: 10; width: 150px; min-width: 150px; }
+        /* 第三列 */
+        th:nth-child(3), td:nth-child(3) { position: sticky; left: 220px; z-index: 10; width: 150px; min-width: 150px; }
+        /* 第四列：手牌编码列 (可视化列) */
+        th:nth-child(4), td:nth-child(4) { 
+            position: sticky; left: 370px; z-index: 10; 
+            width: 450px; min-width: 450px; 
+            border-right: 3px solid #1890ff; /* 冻结边界标识线 */
+        }
+        
+        th { background-color: #fafafa !important; font-weight: bold; border-top: 1px solid #e8e8e8; z-index: 11 !important; }
+        td:nth-child(-n+4) { background-color: #fff; }
+        tr:hover td { background-color: #f5f5f5; }
+        tr:hover td:nth-child(-n+4) { background-color: #f5f5f5; }
+
+        /* 可视化区域样式 */
+        .mj-view { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 4px; 
+            margin-top: 8px; 
+            min-height: 50px;
+            background: #fdfdfd;
+            padding: 5px;
+            border: 1px dashed #eee;
+            border-radius: 4px;
+        }
+        .mj-img { height: 42px; border: 1px solid #ddd; border-radius: 3px; }
+
+        input[type="text"] { 
+            width: 95%; 
+            padding: 8px; 
+            border: 1px solid #d9d9d9; 
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .hand-code-input { font-family: "Courier New", monospace; color: #1890ff; font-weight: bold; }
+
+        button { cursor: pointer; padding: 8px 16px; border: none; border-radius: 4px; background: #1890ff; color: white; }
+        button:hover { opacity: 0.8; }
+        .btn-danger { background: #ff4d4f; padding: 5px 10px; }
+        .btn-add { background: #52c41a; }
+    </style>
+</head>
+<body>
+
+    <div class="header-area">
+        <h2>🀄 棋牌测试数据编辑器 (固定前四列版)</h2>
+        <p style="font-size: 13px; color: #666;">提示：第四列固定为手牌编码，CSV导入时请确保编码在该列。</p>
+    </div>
+    
+    <div class="controls">
+        <button class="btn-add" onclick="addRow()">+ 新增行</button>
+        <button class="btn-add" onclick="addColumn()">+ 新增列</button>
+        <button onclick="exportCSV()">导出 CSV</button>
+        <button onclick="document.getElementById('fileInput').click()">导入 CSV</button>
+        <input type="file" id="fileInput" style="display:none" accept=".csv" onchange="importCSV(this)">
+    </div>
+
+    <div class="table-container">
+        <table id="testTable">
+            <thead>
+                <tr id="headerRow">
+                    <th>操作</th>
+                    <th contenteditable="true">用例编号</th>
+                    <th contenteditable="true">备注</th>
+                    <th contenteditable="true">手牌编码 (图片可视化)</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td><button class="btn-danger" onclick="removeRow(this)">删</button></td>
+                    <td><input type="text" value="Case_001"></td>
+                    <td><input type="text" value="示例数据"></td>
+                    <td>
+                        <input type="text" class="hand-code-input" value="0x01,0x02,0x03,0x35,0x36" oninput="updateVisual(this)">
+                        <div class="mj-view"></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+<script>
+    // 编码映射关系核实：0x01-0x48
+    const MJ_MAP = {
+        "0x01":"1w","0x02":"2w","0x03":"3w","0x04":"4w","0x05":"5w","0x06":"6w","0x07":"7w","0x08":"8w","0x09":"9w",
+        "0x11":"1t","0x12":"2t","0x13":"3t","0x14":"4t","0x15":"5t","0x16":"6t","0x17":"7t","0x18":"8t","0x19":"9t",
+        "0x21":"1s","0x22":"2s","0x23":"3s","0x24":"4s","0x25":"5s","0x26":"6s","0x27":"7s","0x28":"8s","0x29":"9s",
+        "0x31":"east","0x32":"south","0x33":"west","0x34":"north","0x35":"zhong","0x36":"fa","0x37":"bai",
+        "0x41":"spring","0x42":"summer","0x43":"autumn","0x44":"winter","0x45":"mei","0x46":"lan","0x47":"zhu","0x48":"ju"
+    };
+
+    function updateVisual(input) {
+        const val = input.value.trim();
+        const container = input.nextElementSibling;
+        if (!container) return;
+        
+        container.innerHTML = '';
+        const codes = val.replace(/，/g, ',').split(',');
+        
+        codes.forEach(code => {
+            const hex = code.trim().toLowerCase();
+            if(MJ_MAP[hex]) {
+                const img = document.createElement('img');
+                img.src = `images/${MJ_MAP[hex]}.png`;
+                img.className = 'mj-img';
+                img.title = hex;
+                img.onerror = () => { 
+                    img.style.display = 'none';
+                    const span = document.createElement('span');
+                    span.innerText = `[${MJ_MAP[hex]}]`;
+                    span.style.fontSize = '12px';
+                    container.appendChild(span);
+                }; 
+                container.appendChild(img);
+            }
+        });
+    }
+
+    function addRow() {
+        const tbody = document.getElementById('tableBody');
+        const colCount = document.getElementById('headerRow').cells.length;
+        const tr = document.createElement('tr');
+        
+        let html = `<td><button class="btn-danger" onclick="removeRow(this)">删</button></td>`;
+        for(let i = 1; i < colCount; i++) {
+            // 固定第四列（索引3）为可视化列
+            if (i === 3) {
+                html += `<td><input type="text" class="hand-code-input" oninput="updateVisual(this)"><div class="mj-view"></div></td>`;
+            } else {
+                html += `<td><input type="text"></td>`;
+            }
+        }
+        tr.innerHTML = html;
+        tbody.appendChild(tr);
+    }
+
+    function removeRow(btn) {
+        btn.closest('tr').remove();
+    }
+
+    function addColumn() {
+        const headerRow = document.getElementById('headerRow');
+        const th = document.createElement('th');
+        th.contentEditable = "true";
+        th.innerText = "新属性";
+        headerRow.appendChild(th);
+
+        const rows = document.getElementById('tableBody').rows;
+        for(let i = 0; i < rows.length; i++) {
+            rows[i].insertCell(-1).innerHTML = `<input type="text">`;
+        }
+    }
+
+    function exportCSV() {
+        let csv = [];
+        const rows = document.querySelectorAll("table tr");
+        rows.forEach(r => {
+            let row = [], cols = r.querySelectorAll("td, th");
+            for (let j = 1; j < cols.length; j++) { 
+                const input = cols[j].querySelector('input');
+                let text = input ? input.value : cols[j].innerText;
+                row.push(`"${text.replace(/"/g, '""')}"`);
+            }
+            csv.push(row.join(","));
+        });
+        const blob = new Blob(["\ufeff" + csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", "test_config.csv");
+        link.click();
+    }
+
+    function importCSV(input) {
+        const file = input.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result;
+            const lines = content.split(/\r?\n/).filter(l => l.trim() !== "");
+            if(lines.length === 0) return;
+            
+            document.getElementById('headerRow').innerHTML = '<th>操作</th>';
+            document.getElementById('tableBody').innerHTML = '';
+
+            const headers = parseCSVLine(lines[0]);
+            headers.forEach(h => {
+                const th = document.createElement('th');
+                th.contentEditable = "true";
+                th.innerText = h;
+                document.getElementById('headerRow').appendChild(th);
+            });
+
+            for(let i = 1; i < lines.length; i++) {
+                const rowData = parseCSVLine(lines[i]);
+                addRow();
+                const lastRow = document.getElementById('tableBody').lastElementChild;
+                rowData.forEach((data, dIdx) => {
+                    const cell = lastRow.cells[dIdx+1];
+                    if(cell) {
+                        const inputField = cell.querySelector('input');
+                        if(inputField) {
+                            inputField.value = data;
+                            // 强制触发第四列的渲染
+                            if(dIdx === 2) { // CSV的第3个数据对应表格第4列(索引3)，因为索引0是操作列
+                                updateVisual(inputField);
+                            }
+                        }
+                    }
+                });
+            }
+            input.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function parseCSVLine(line) {
+        const result = [];
+        let cur = '', inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) { result.push(cur.trim()); cur = ''; }
+            else cur += char;
+        }
+        result.push(cur.trim());
+        return result.map(v => v.replace(/^"|"$/g, ''));
+    }
+
+    window.onload = () => {
+        document.querySelectorAll('.hand-code-input').forEach(updateVisual);
+    };
+</script>
+</body>
+</html>
