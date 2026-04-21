@@ -2,92 +2,75 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>麻将测试工具 - 冻结前四列版</title>
+    <title>麻将测试数据编辑器 - 体验优化版</title>
     <style>
-        body { font-family: "Microsoft YaHei", sans-serif; padding: 20px; background-color: #f0f2f5; color: #333; }
-        .header-area { margin-bottom: 20px; }
-        .controls { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+        body { font-family: "Microsoft YaHei", sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; margin: 0; }
+        .header-area { margin-bottom: 10px; }
+        .controls { margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
         
-        /* 表格容器 */
+        /* 表格容器优化：固定高度，使横向滚动条始终可见 */
         .table-container { 
             width: 100%; 
-            overflow-x: auto; 
+            height: calc(100vh - 130px); /* 自动计算高度，预留出顶部按钮位置 */
+            overflow: auto; /* 开启双向滚动 */
             background: white; 
-            border-radius: 8px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            border-radius: 4px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
         }
 
-        table { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: auto; }
+        table { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; } /* 使用固定布局控制宽度 */
 
         th, td { 
             border-bottom: 1px solid #e8e8e8; 
             border-right: 1px solid #e8e8e8; 
-            padding: 12px; 
-            white-space: nowrap; 
+            padding: 8px; 
             background: white;
-            min-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* --- 冻结前四列的核心逻辑 --- */
-        /* 列宽预设值用于计算固定位置：列1(70px), 列2(150px), 列3(150px), 列4(400px) */
-        
-        /* 第一列：操作 */
-        th:nth-child(1), td:nth-child(1) { position: sticky; left: 0; z-index: 10; width: 70px; min-width: 70px; }
-        /* 第二列 */
-        th:nth-child(2), td:nth-child(2) { position: sticky; left: 70px; z-index: 10; width: 150px; min-width: 150px; }
-        /* 第三列 */
-        th:nth-child(3), td:nth-child(3) { position: sticky; left: 220px; z-index: 10; width: 150px; min-width: 150px; }
-        /* 第四列：手牌编码列 (可视化列) */
-        th:nth-child(4), td:nth-child(4) { 
-            position: sticky; left: 370px; z-index: 10; 
-            width: 450px; min-width: 450px; 
-            border-right: 3px solid #1890ff; /* 冻结边界标识线 */
-        }
-        
+        /* --- 宽度精准分配 --- */
+        /* 列1：操作 (较窄) */
+        .col-op { width: 50px; position: sticky; left: 0; z-index: 10; }
+        /* 列2：用例ID */
+        .col-id { width: 130px; position: sticky; left: 50px; z-index: 10; }
+        /* 列3：场景标签 */
+        .col-tag { width: 140px; position: sticky; left: 180px; z-index: 10; }
+        /* 列4：手牌编码 (最宽) */
+        .col-hand { width: 420px; position: sticky; left: 320px; z-index: 10; border-right: 2px solid #1890ff !important; }
+        /* 其他普通属性列 (窄列) */
+        .col-attr { width: 90px; }
+
         th { background-color: #fafafa !important; font-weight: bold; border-top: 1px solid #e8e8e8; z-index: 11 !important; }
         td:nth-child(-n+4) { background-color: #fff; }
-        tr:hover td { background-color: #f5f5f5; }
-        tr:hover td:nth-child(-n+4) { background-color: #f5f5f5; }
+        tr:hover td { background-color: #f5f7fa; }
+        tr:hover td:nth-child(-n+4) { background-color: #f5f7fa; }
 
-        /* 可视化区域样式 */
         .mj-view { 
-            display: flex; 
-            flex-wrap: wrap; 
-            gap: 4px; 
-            margin-top: 8px; 
-            min-height: 50px;
-            background: #fdfdfd;
-            padding: 5px;
-            border: 1px dashed #eee;
-            border-radius: 4px;
+            display: flex; flex-wrap: wrap; gap: 2px; margin-top: 5px; 
+            min-height: 45px; background: #f9f9f9; padding: 4px; border-radius: 4px;
         }
-        .mj-img { height: 42px; border: 1px solid #ddd; border-radius: 3px; }
+        .mj-img { height: 38px; border: 1px solid #ddd; }
 
         input[type="text"] { 
-            width: 95%; 
-            padding: 8px; 
-            border: 1px solid #d9d9d9; 
-            border-radius: 4px;
-            box-sizing: border-box;
+            width: 100%; padding: 6px; border: 1px solid #d9d9d9; border-radius: 3px; box-sizing: border-box; font-size: 13px;
         }
-        .hand-code-input { font-family: "Courier New", monospace; color: #1890ff; font-weight: bold; }
+        .hand-code-input { font-family: monospace; color: #1890ff; font-size: 12px; }
 
-        button { cursor: pointer; padding: 8px 16px; border: none; border-radius: 4px; background: #1890ff; color: white; }
-        button:hover { opacity: 0.8; }
-        .btn-danger { background: #ff4d4f; padding: 5px 10px; }
+        button { cursor: pointer; padding: 6px 12px; border: none; border-radius: 4px; background: #1890ff; color: white; font-size: 13px; }
+        .btn-danger { background: #ff4d4f; }
         .btn-add { background: #52c41a; }
     </style>
 </head>
 <body>
 
     <div class="header-area">
-        <h2>🀄 棋牌测试数据编辑器 (固定前四列版)</h2>
-        <p style="font-size: 13px; color: #666;">提示：第四列固定为手牌编码，CSV导入时请确保编码在该列。</p>
+        <h3 style="margin:5px 0;">🀄 棋牌测试编辑器 (滚动条优化版)</h3>
     </div>
     
     <div class="controls">
         <button class="btn-add" onclick="addRow()">+ 新增行</button>
-        <button class="btn-add" onclick="addColumn()">+ 新增列</button>
+        <button class="btn-add" onclick="addColumn()">+ 新增属性列</button>
         <button onclick="exportCSV()">导出 CSV</button>
         <button onclick="document.getElementById('fileInput').click()">导入 CSV</button>
         <input type="file" id="fileInput" style="display:none" accept=".csv" onchange="importCSV(this)">
@@ -95,30 +78,39 @@
 
     <div class="table-container">
         <table id="testTable">
+            <colgroup>
+                <col class="col-op">
+                <col class="col-id">
+                <col class="col-tag">
+                <col class="col-hand">
+                </colgroup>
             <thead>
                 <tr id="headerRow">
                     <th>操作</th>
-                    <th contenteditable="true">用例编号</th>
-                    <th contenteditable="true">备注</th>
-                    <th contenteditable="true">手牌编码 (图片可视化)</th>
+                    <th contenteditable="true">用例ID</th>
+                    <th contenteditable="true">场景标签</th>
+                    <th contenteditable="true">手牌编码</th>
+                    <th class="col-attr" contenteditable="true">人数</th>
+                    <th class="col-attr" contenteditable="true">刻子数</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
                     <td><button class="btn-danger" onclick="removeRow(this)">删</button></td>
-                    <td><input type="text" value="Case_001"></td>
-                    <td><input type="text" value="示例数据"></td>
+                    <td><input type="text" value="TC_001"></td>
+                    <td><input type="text" value="清一色"></td>
                     <td>
-                        <input type="text" class="hand-code-input" value="0x01,0x02,0x03,0x35,0x36" oninput="updateVisual(this)">
+                        <input type="text" class="hand-code-input" value="0x01,0x02,0x03" oninput="updateVisual(this)">
                         <div class="mj-view"></div>
                     </td>
+                    <td><input type="text" value="4"></td>
+                    <td><input type="text" value="0"></td>
                 </tr>
             </tbody>
         </table>
     </div>
 
 <script>
-    // 编码映射关系核实：0x01-0x48
     const MJ_MAP = {
         "0x01":"1w","0x02":"2w","0x03":"3w","0x04":"4w","0x05":"5w","0x06":"6w","0x07":"7w","0x08":"8w","0x09":"9w",
         "0x11":"1t","0x12":"2t","0x13":"3t","0x14":"4t","0x15":"5t","0x16":"6t","0x17":"7t","0x18":"8t","0x19":"9t",
@@ -131,24 +123,14 @@
         const val = input.value.trim();
         const container = input.nextElementSibling;
         if (!container) return;
-        
         container.innerHTML = '';
-        const codes = val.replace(/，/g, ',').split(',');
-        
-        codes.forEach(code => {
+        val.replace(/，/g, ',').split(',').forEach(code => {
             const hex = code.trim().toLowerCase();
             if(MJ_MAP[hex]) {
                 const img = document.createElement('img');
                 img.src = `images/${MJ_MAP[hex]}.png`;
                 img.className = 'mj-img';
-                img.title = hex;
-                img.onerror = () => { 
-                    img.style.display = 'none';
-                    const span = document.createElement('span');
-                    span.innerText = `[${MJ_MAP[hex]}]`;
-                    span.style.fontSize = '12px';
-                    container.appendChild(span);
-                }; 
+                img.onerror = () => { img.style.display = 'none'; }; 
                 container.appendChild(img);
             }
         });
@@ -158,11 +140,9 @@
         const tbody = document.getElementById('tableBody');
         const colCount = document.getElementById('headerRow').cells.length;
         const tr = document.createElement('tr');
-        
         let html = `<td><button class="btn-danger" onclick="removeRow(this)">删</button></td>`;
         for(let i = 1; i < colCount; i++) {
-            // 固定第四列（索引3）为可视化列
-            if (i === 3) {
+            if (i === 3) { // 第四列
                 html += `<td><input type="text" class="hand-code-input" oninput="updateVisual(this)"><div class="mj-view"></div></td>`;
             } else {
                 html += `<td><input type="text"></td>`;
@@ -172,13 +152,12 @@
         tbody.appendChild(tr);
     }
 
-    function removeRow(btn) {
-        btn.closest('tr').remove();
-    }
+    function removeRow(btn) { btn.closest('tr').remove(); }
 
     function addColumn() {
         const headerRow = document.getElementById('headerRow');
         const th = document.createElement('th');
+        th.className = "col-attr";
         th.contentEditable = "true";
         th.innerText = "新属性";
         headerRow.appendChild(th);
@@ -204,7 +183,7 @@
         const blob = new Blob(["\ufeff" + csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.setAttribute("download", "test_config.csv");
+        link.setAttribute("download", "config.csv");
         link.click();
     }
 
@@ -213,40 +192,33 @@
         if(!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
-            const content = e.target.result;
-            const lines = content.split(/\r?\n/).filter(l => l.trim() !== "");
-            if(lines.length === 0) return;
-            
+            const lines = e.target.result.split(/\r?\n/).filter(l => l.trim() !== "");
             document.getElementById('headerRow').innerHTML = '<th>操作</th>';
             document.getElementById('tableBody').innerHTML = '';
-
-            const headers = parseCSVLine(lines[0]);
-            headers.forEach(h => {
+            
+            // 解析表头并应用宽度
+            parseCSVLine(lines[0]).forEach((h, idx) => {
                 const th = document.createElement('th');
+                if(idx > 2) th.className = "col-attr"; // 给后面的列默认窄列宽
                 th.contentEditable = "true";
                 th.innerText = h;
                 document.getElementById('headerRow').appendChild(th);
             });
 
             for(let i = 1; i < lines.length; i++) {
-                const rowData = parseCSVLine(lines[i]);
                 addRow();
                 const lastRow = document.getElementById('tableBody').lastElementChild;
-                rowData.forEach((data, dIdx) => {
+                parseCSVLine(lines[i]).forEach((data, dIdx) => {
                     const cell = lastRow.cells[dIdx+1];
                     if(cell) {
                         const inputField = cell.querySelector('input');
                         if(inputField) {
                             inputField.value = data;
-                            // 强制触发第四列的渲染
-                            if(dIdx === 2) { // CSV的第3个数据对应表格第4列(索引3)，因为索引0是操作列
-                                updateVisual(inputField);
-                            }
+                            if(dIdx === 2) updateVisual(inputField); // 第四列索引是2（去掉操作列后）
                         }
                     }
                 });
             }
-            input.value = '';
         };
         reader.readAsText(file);
     }
@@ -264,9 +236,7 @@
         return result.map(v => v.replace(/^"|"$/g, ''));
     }
 
-    window.onload = () => {
-        document.querySelectorAll('.hand-code-input').forEach(updateVisual);
-    };
+    window.onload = () => { document.querySelectorAll('.hand-code-input').forEach(updateVisual); };
 </script>
 </body>
 </html>
