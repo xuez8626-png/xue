@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>麻将测试数据编辑器 - 冻结前七列版</title>
+    <title>麻将测试数据编辑器 - 终极布局版</title>
     <style>
         body { font-family: "Microsoft YaHei", sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; margin: 0; }
         .controls { margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
@@ -24,11 +24,10 @@
             padding: 6px; 
             background: white;
             font-size: 13px;
+            overflow: hidden;
         }
 
-        /* --- 核心：冻结前七列的精确宽度与位置计算 --- */
-        /* 累计宽度计算：50 + 100 + 100 + 100 + 100 + 100 + 420 */
-        
+        /* --- 冻结前七列 --- */
         .col-1 { width: 50px;  position: sticky; left: 0; z-index: 20; }
         .col-2 { width: 100px; position: sticky; left: 50px; z-index: 20; }
         .col-3 { width: 100px; position: sticky; left: 150px; z-index: 20; }
@@ -40,18 +39,19 @@
             position: sticky; 
             left: 550px; 
             z-index: 20; 
-            border-right: 3px solid #1890ff !important; /* 蓝线边界 */
+            border-right: 3px solid #1890ff !important; 
         }
         
-        /* 普通列宽 */
-        .col-attr { width: 90px; }
+        /* 普通属性列宽度 (包含第14列) */
+        .col-attr { width: 85px; }
 
-        /* 第十四列：显示全部内容 (索引从1开始算起是第14列) */
-        td:nth-child(14), th:nth-child(14) { 
-            width: 300px; 
-            white-space: normal; /* 允许换行 */
+        /* 最后一列（第44列/备注列）全显示 */
+        /* 使用 last-child 自动锁定最后一列，无论你导入多少列都有效 */
+        td:last-child, th:last-child { 
+            width: 400px !important; /* 给予足够的显示宽度 */
+            white-space: normal !important; /* 强制换行显示全部 */
             word-break: break-all;
-            min-width: 200px;
+            overflow: visible;
         }
 
         th { background-color: #fafafa !important; font-weight: bold; border-top: 1px solid #e8e8e8; z-index: 21 !important; }
@@ -66,8 +66,13 @@
         input[type="text"] { 
             width: 100%; padding: 5px; border: 1px solid #d9d9d9; border-radius: 3px; box-sizing: border-box; font-size: 12px;
         }
-        .hand-code-input { font-family: monospace; color: #1890ff; }
+        /* 最后一列内的输入框也允许自动增高 */
+        td:last-child input[type="text"] {
+            border: none;
+            background: transparent;
+        }
 
+        .hand-code-input { font-family: monospace; color: #1890ff; }
         button { cursor: pointer; padding: 5px 10px; border: none; border-radius: 4px; background: #1890ff; color: white; }
         .btn-danger { background: #ff4d4f; }
         .btn-add { background: #52c41a; }
@@ -88,23 +93,15 @@
             <thead>
                 <tr id="headerRow">
                     <th class="col-1">操作</th>
-                    <th class="col-2" contenteditable="true">用例ID</th>
-                    <th class="col-3" contenteditable="true">属性2</th>
-                    <th class="col-4" contenteditable="true">属性3</th>
-                    <th class="col-5" contenteditable="true">属性4</th>
-                    <th class="col-6" contenteditable="true">属性5</th>
-                    <th class="col-7" contenteditable="true">手牌编码 (图片)</th>
-                    <th class="col-attr" contenteditable="true">人数</th>
-                    <th class="col-attr" contenteditable="true">玩法</th>
-                    <th class="col-attr" contenteditable="true">属性10</th>
-                    <th class="col-attr" contenteditable="true">属性11</th>
-                    <th class="col-attr" contenteditable="true">属性12</th>
-                    <th class="col-attr" contenteditable="true">属性13</th>
-                    <th class="col-attr" contenteditable="true">第14列(全内容)</th>
-                </tr>
+                    <th class="col-2">用例ID</th>
+                    <th class="col-3">属性2</th>
+                    <th class="col-4">属性3</th>
+                    <th class="col-5">属性4</th>
+                    <th class="col-6">属性5</th>
+                    <th class="col-7">手牌编码</th>
+                    </tr>
             </thead>
-            <tbody id="tableBody">
-                </tbody>
+            <tbody id="tableBody"></tbody>
         </table>
     </div>
 
@@ -138,15 +135,12 @@
         const tbody = document.getElementById('tableBody');
         const headerCells = document.getElementById('headerRow').cells;
         const tr = document.createElement('tr');
-        
         for(let i = 0; i < headerCells.length; i++) {
             const cell = tr.insertCell(-1);
-            // 应用与表头一致的冻结类名
             if(headerCells[i].className) cell.className = headerCells[i].className;
-            
             if (i === 0) {
                 cell.innerHTML = `<button class="btn-danger" onclick="removeRow(this)">删</button>`;
-            } else if (i === 6) { // 第七列（索引6）为手牌编码
+            } else if (i === 6) {
                 cell.innerHTML = `<input type="text" class="hand-code-input" oninput="updateVisual(this)"><div class="mj-view"></div>`;
             } else {
                 cell.innerHTML = `<input type="text">`;
@@ -199,20 +193,15 @@
             const lines = e.target.result.split(/\r?\n/).filter(l => l.trim() !== "");
             document.getElementById('headerRow').innerHTML = '<th class="col-1">操作</th>';
             document.getElementById('tableBody').innerHTML = '';
-            
             const headers = parseCSVLine(lines[0]);
             headers.forEach((h, idx) => {
                 const th = document.createElement('th');
-                // 前六列给固定宽度
-                if(idx < 5) th.className = `col-${idx+2}`;
-                else if(idx === 5) th.className = "col-7";
+                if(idx < 6) th.className = `col-${idx+2}`;
                 else th.className = "col-attr";
-                
                 th.contentEditable = "true";
                 th.innerText = h;
                 document.getElementById('headerRow').appendChild(th);
             });
-
             for(let i = 1; i < lines.length; i++) {
                 addRow();
                 const lastRow = document.getElementById('tableBody').lastElementChild;
@@ -222,7 +211,7 @@
                         const inputField = cell.querySelector('input');
                         if(inputField) {
                             inputField.value = data;
-                            if(dIdx === 5) updateVisual(inputField); // CSV第六个数据对应第七列
+                            if(dIdx === 5) updateVisual(inputField);
                         }
                     }
                 });
@@ -244,7 +233,6 @@
         return result.map(v => v.replace(/^"|"$/g, ''));
     }
 
-    // 初始化一行
     window.onload = () => { addRow(); };
 </script>
 </body>
