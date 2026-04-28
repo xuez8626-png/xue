@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>麻将测试数据编辑器 - 终极布局版</title>
+    <title>麻将测试数据编辑器 - 百搭标记版</title>
     <style>
         body { font-family: "Microsoft YaHei", sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; margin: 0; }
         .controls { margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
@@ -24,7 +24,6 @@
             padding: 6px; 
             background: white;
             font-size: 13px;
-            overflow: hidden;
         }
 
         /* --- 冻结前七列 --- */
@@ -42,36 +41,50 @@
             border-right: 3px solid #1890ff !important; 
         }
         
-        /* 普通属性列宽度 (包含第14列) */
         .col-attr { width: 85px; }
 
-        /* 最后一列（第44列/备注列）全显示 */
-        /* 使用 last-child 自动锁定最后一列，无论你导入多少列都有效 */
+        /* 最后一列全显示 */
         td:last-child, th:last-child { 
-            width: 400px !important; /* 给予足够的显示宽度 */
-            white-space: normal !important; /* 强制换行显示全部 */
+            width: 400px !important; 
+            white-space: normal !important; 
             word-break: break-all;
-            overflow: visible;
         }
 
         th { background-color: #fafafa !important; font-weight: bold; border-top: 1px solid #e8e8e8; z-index: 21 !important; }
         tr:hover td { background-color: #f5f7fa !important; }
         
+        /* --- 麻牌与百搭标记样式 --- */
         .mj-view { 
-            display: flex; flex-wrap: wrap; gap: 2px; margin-top: 5px; 
+            display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; 
             min-height: 40px; background: #f9f9f9; padding: 4px; border-radius: 4px;
         }
-        .mj-img { height: 35px; border: 1px solid #ddd; }
+        .mj-unit { position: relative; display: inline-block; height: 35px; }
+        .mj-img { height: 35px; border: 1px solid #ddd; border-radius: 2px; display: block; }
+        
+        /* 百搭蒙层 */
+        .laizi-mask {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 215, 0, 0.3); /* 金色半透明 */
+            border: 1px solid orange;
+            box-sizing: border-box;
+            pointer-events: none;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .laizi-mask::after {
+            content: "王";
+            color: #d40000;
+            font-weight: bold;
+            font-size: 12px;
+            background: white;
+            border-radius: 50%;
+            width: 14px; height: 14px;
+            line-height: 14px; text-align: center;
+            box-shadow: 0 0 2px rgba(0,0,0,0.5);
+        }
 
         input[type="text"] { 
             width: 100%; padding: 5px; border: 1px solid #d9d9d9; border-radius: 3px; box-sizing: border-box; font-size: 12px;
         }
-        /* 最后一列内的输入框也允许自动增高 */
-        td:last-child input[type="text"] {
-            border: none;
-            background: transparent;
-        }
-
         .hand-code-input { font-family: monospace; color: #1890ff; }
         button { cursor: pointer; padding: 5px 10px; border: none; border-radius: 4px; background: #1890ff; color: white; }
         .btn-danger { background: #ff4d4f; }
@@ -97,9 +110,9 @@
                     <th class="col-3">属性2</th>
                     <th class="col-4">属性3</th>
                     <th class="col-5">属性4</th>
-                    <th class="col-6">属性5</th>
-                    <th class="col-7">手牌编码</th>
-                    </tr>
+                    <th class="col-6">百搭牌编码</th>
+                    <th class="col-7">手牌编码 (自动标记)</th>
+                </tr>
             </thead>
             <tbody id="tableBody"></tbody>
         </table>
@@ -114,21 +127,47 @@
         "0x41":"spring","0x42":"summer","0x43":"autumn","0x44":"winter","0x45":"mei","0x46":"lan","0x47":"zhu","0x48":"ju"
     };
 
+    // 更新手牌视图，包含百搭标记逻辑
     function updateVisual(input) {
+        const row = input.closest('tr');
+        // 获取当前行“百搭牌编码”列的输入框（索引5对应表格第6列）
+        const laiziInput = row.cells[5].querySelector('input');
+        const laiziCode = laiziInput ? laiziInput.value.trim().toLowerCase() : "";
+        
         const val = input.value.trim();
         const container = input.nextElementSibling;
         if (!container) return;
+        
         container.innerHTML = '';
         val.replace(/，/g, ',').split(',').forEach(code => {
             const hex = code.trim().toLowerCase();
             if(MJ_MAP[hex]) {
+                const unit = document.createElement('div');
+                unit.className = 'mj-unit';
+                
                 const img = document.createElement('img');
                 img.src = `images/${MJ_MAP[hex]}.png`;
                 img.className = 'mj-img';
                 img.onerror = () => { img.style.display = 'none'; }; 
-                container.appendChild(img);
+                unit.appendChild(img);
+
+                // 如果当前牌是百搭牌，添加标记
+                if(laiziCode && hex === laiziCode) {
+                    const mask = document.createElement('div');
+                    mask.className = 'laizi-mask';
+                    unit.appendChild(mask);
+                }
+                
+                container.appendChild(unit);
             }
         });
+    }
+
+    // 当百搭牌输入框变化时，刷新手牌视图
+    function onLaiziChange(input) {
+        const row = input.closest('tr');
+        const handInput = row.cells[6].querySelector('.hand-code-input');
+        if(handInput) updateVisual(handInput);
     }
 
     function addRow() {
@@ -138,9 +177,12 @@
         for(let i = 0; i < headerCells.length; i++) {
             const cell = tr.insertCell(-1);
             if(headerCells[i].className) cell.className = headerCells[i].className;
+            
             if (i === 0) {
                 cell.innerHTML = `<button class="btn-danger" onclick="removeRow(this)">删</button>`;
-            } else if (i === 6) {
+            } else if (i === 5) { // 百搭列
+                cell.innerHTML = `<input type="text" oninput="onLaiziChange(this)">`;
+            } else if (i === 6) { // 手牌列
                 cell.innerHTML = `<input type="text" class="hand-code-input" oninput="updateVisual(this)"><div class="mj-view"></div>`;
             } else {
                 cell.innerHTML = `<input type="text">`;
@@ -211,7 +253,8 @@
                         const inputField = cell.querySelector('input');
                         if(inputField) {
                             inputField.value = data;
-                            if(dIdx === 5) updateVisual(inputField);
+                            // 导入后不仅渲染图片，还要检查百搭
+                            if(dIdx === 5) updateVisual(inputField); 
                         }
                     }
                 });
