@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>麻将测试数据编辑器 - 百搭标记版</title>
+    <title>麻将测试数据编辑器 - 索引43对齐版</title>
     <style>
         body { font-family: "Microsoft YaHei", sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; margin: 0; }
         .controls { margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
@@ -26,7 +26,7 @@
             font-size: 13px;
         }
 
-        /* --- 冻结前七列 --- */
+        /* 冻结前七列 */
         .col-1 { width: 50px;  position: sticky; left: 0; z-index: 20; }
         .col-2 { width: 100px; position: sticky; left: 50px; z-index: 20; }
         .col-3 { width: 100px; position: sticky; left: 150px; z-index: 20; }
@@ -43,17 +43,18 @@
         
         .col-attr { width: 85px; }
 
-        /* 最后一列全显示 */
+        /* 第 44 列（最后一列）全显示 */
         td:last-child, th:last-child { 
             width: 400px !important; 
             white-space: normal !important; 
             word-break: break-all;
+            background: #fffef0; /* 淡淡的黄色区分备注区 */
         }
 
         th { background-color: #fafafa !important; font-weight: bold; border-top: 1px solid #e8e8e8; z-index: 21 !important; }
         tr:hover td { background-color: #f5f7fa !important; }
         
-        /* --- 麻牌与百搭标记样式 --- */
+        /* 图片与蒙层样式 */
         .mj-view { 
             display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; 
             min-height: 40px; background: #f9f9f9; padding: 4px; border-radius: 4px;
@@ -61,25 +62,12 @@
         .mj-unit { position: relative; display: inline-block; height: 35px; }
         .mj-img { height: 35px; border: 1px solid #ddd; border-radius: 2px; display: block; }
         
-        /* 百搭蒙层 */
-        .laizi-mask {
+        .highlight-mask {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 215, 0, 0.3); /* 金色半透明 */
-            border: 1px solid orange;
+            background: rgba(255, 215, 0, 0.45); /* 稍微加深一点金色 */
+            border: 1px solid #ffa500;
             box-sizing: border-box;
             pointer-events: none;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .laizi-mask::after {
-            content: "王";
-            color: #d40000;
-            font-weight: bold;
-            font-size: 12px;
-            background: white;
-            border-radius: 50%;
-            width: 14px; height: 14px;
-            line-height: 14px; text-align: center;
-            box-shadow: 0 0 2px rgba(0,0,0,0.5);
         }
 
         input[type="text"] { 
@@ -110,8 +98,8 @@
                     <th class="col-3">属性2</th>
                     <th class="col-4">属性3</th>
                     <th class="col-5">属性4</th>
-                    <th class="col-6">百搭牌编码</th>
-                    <th class="col-7">手牌编码 (自动标记)</th>
+                    <th class="col-6">属性5</th>
+                    <th class="col-7">手牌编码 (参考索引43蒙层)</th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -127,12 +115,17 @@
         "0x41":"spring","0x42":"summer","0x43":"autumn","0x44":"winter","0x45":"mei","0x46":"lan","0x47":"zhu","0x48":"ju"
     };
 
-    // 更新手牌视图，包含百搭标记逻辑
     function updateVisual(input) {
         const row = input.closest('tr');
-        // 获取当前行“百搭牌编码”列的输入框（索引5对应表格第6列）
-        const laiziInput = row.cells[5].querySelector('input');
-        const laiziCode = laiziInput ? laiziInput.value.trim().toLowerCase() : "";
+        // 精准读取索引 43 (第44列) 的数据
+        const col44Cell = row.cells[43];
+        let targetCodes = [];
+        if (col44Cell) {
+            const col44Input = col44Cell.querySelector('input');
+            if (col44Input) {
+                targetCodes = col44Input.value.toLowerCase().split(',').map(s => s.trim());
+            }
+        }
         
         const val = input.value.trim();
         const container = input.nextElementSibling;
@@ -151,10 +144,10 @@
                 img.onerror = () => { img.style.display = 'none'; }; 
                 unit.appendChild(img);
 
-                // 如果当前牌是百搭牌，添加标记
-                if(laiziCode && hex === laiziCode) {
+                // 蒙层逻辑：如果该编码存在于第44列中
+                if(targetCodes.includes(hex)) {
                     const mask = document.createElement('div');
-                    mask.className = 'laizi-mask';
+                    mask.className = 'highlight-mask';
                     unit.appendChild(mask);
                 }
                 
@@ -163,8 +156,7 @@
         });
     }
 
-    // 当百搭牌输入框变化时，刷新手牌视图
-    function onLaiziChange(input) {
+    function onTargetChange(input) {
         const row = input.closest('tr');
         const handInput = row.cells[6].querySelector('.hand-code-input');
         if(handInput) updateVisual(handInput);
@@ -180,10 +172,10 @@
             
             if (i === 0) {
                 cell.innerHTML = `<button class="btn-danger" onclick="removeRow(this)">删</button>`;
-            } else if (i === 5) { // 百搭列
-                cell.innerHTML = `<input type="text" oninput="onLaiziChange(this)">`;
-            } else if (i === 6) { // 手牌列
+            } else if (i === 6) { // 手牌编码
                 cell.innerHTML = `<input type="text" class="hand-code-input" oninput="updateVisual(this)"><div class="mj-view"></div>`;
+            } else if (i === 43) { // 第 44 列 (索引43)
+                cell.innerHTML = `<input type="text" oninput="onTargetChange(this)">`;
             } else {
                 cell.innerHTML = `<input type="text">`;
             }
@@ -253,7 +245,7 @@
                         const inputField = cell.querySelector('input');
                         if(inputField) {
                             inputField.value = data;
-                            // 导入后不仅渲染图片，还要检查百搭
+                            // 渲染手牌并检查索引43
                             if(dIdx === 5) updateVisual(inputField); 
                         }
                     }
