@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>麻将测试数据编辑器 - 蒙层修复版</title>
+    <title>麻将测试数据编辑器 - 动态对齐版</title>
     <style>
         body { font-family: "Microsoft YaHei", sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; margin: 0; }
         .controls { margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
@@ -24,7 +24,7 @@
             padding: 6px; 
             background: white;
             font-size: 13px;
-            white-space: nowrap; /* 默认不换行 */
+            white-space: nowrap;
             overflow: hidden;
         }
 
@@ -45,27 +45,26 @@
         
         .col-attr { width: 85px; }
 
-        /* 第 30 列（索引 29）优化：全部可见，允许换行 */
-        /* 表格中：操作列(1)+索引29(30) = 第31个单元格 */
-        td:nth-child(31), th:nth-child(31) {
-            width: 250px !important;
+        /* 1. 调整第 29 列（索引 28 + 操作列 1 = 第 30 个 td） */
+        td:nth-child(30), th:nth-child(30) {
+            width: 300px !important;
             white-space: normal !important;
             word-break: break-all;
             overflow: visible;
         }
 
-        /* 第 44 列（索引 43）优化：全部可见，作为数据源 */
-        /* 操作列(1)+索引43(44) = 第45个单元格 */
-        td:nth-child(45), th:nth-child(45) { 
-            width: 300px !important; 
+        /* 2. 调整最后一列（第 44 列/备注列）全显示 */
+        td:last-child, th:last-child { 
+            width: 350px !important; 
             white-space: normal !important; 
             word-break: break-all;
+            background: white !important; /* 确保不被标黄 */
         }
 
         th { background-color: #fafafa !important; font-weight: bold; border-top: 1px solid #e8e8e8; z-index: 21 !important; }
         tr:hover td { background-color: #f5f7fa !important; }
         
-        /* 图片与蒙层样式 */
+        /* 图片蒙层 */
         .mj-view { 
             display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; 
             min-height: 40px; background: #f9f9f9; padding: 4px; border-radius: 4px;
@@ -73,10 +72,10 @@
         .mj-unit { position: relative; display: inline-block; height: 35px; }
         .mj-img { height: 35px; border: 1px solid #ddd; border-radius: 2px; display: block; }
         
-        /* 半透明金色蒙层 */
+        /* 命中编码的金色半透明蒙层 */
         .highlight-mask {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 215, 0, 0.5); /* 金色透明 */
+            background: rgba(255, 215, 0, 0.5); 
             border: 1px solid #ffa500;
             box-sizing: border-box;
             pointer-events: none;
@@ -111,7 +110,7 @@
                     <th class="col-4">属性3</th>
                     <th class="col-5">属性4</th>
                     <th class="col-6">属性5</th>
-                    <th class="col-7">手牌编码 (实时蒙层)</th>
+                    <th class="col-7">手牌编码 (自动蒙层)</th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -129,15 +128,15 @@
 
     function updateVisual(input) {
         const row = input.closest('tr');
-        // 精准定位到第 44 列（索引 43）
-        // 因为第一列是操作列，所以 row.cells 的索引是 44
-        const col44Cell = row.cells[44];
+        
+        // 策略：直接读取该行的【最后一个单元格】作为百搭编码源
+        const lastCell = row.cells[row.cells.length - 1];
         let targetCodes = [];
-        if (col44Cell) {
-            const col44Input = col44Cell.querySelector('input');
-            if (col44Input) {
-                // 将 0xXX,0xYY 拆分成数组
-                targetCodes = col44Input.value.toLowerCase().split(/[，,]/).map(s => s.trim());
+        if (lastCell) {
+            const lastInput = lastCell.querySelector('input');
+            if (lastInput) {
+                // 支持逗号、中文逗号、空格分隔
+                targetCodes = lastInput.value.toLowerCase().split(/[，,\s]+/).filter(s => s !== "").map(s => s.trim());
             }
         }
         
@@ -146,7 +145,6 @@
         if (!container) return;
         
         container.innerHTML = '';
-        // 渲染逻辑
         val.replace(/，/g, ',').split(',').forEach(code => {
             const hex = code.trim().toLowerCase();
             if(MJ_MAP[hex]) {
@@ -159,8 +157,8 @@
                 img.onerror = () => { img.style.display = 'none'; }; 
                 unit.appendChild(img);
 
-                // 蒙层匹配逻辑：如果当前牌编码在第 44 列的名单中
-                if(targetCodes.length > 0 && targetCodes.includes(hex)) {
+                // 核心逻辑：如果手牌编码存在于最后一列的百搭数据中，加蒙层
+                if(targetCodes.includes(hex)) {
                     const mask = document.createElement('div');
                     mask.className = 'highlight-mask';
                     unit.appendChild(mask);
@@ -171,11 +169,10 @@
         });
     }
 
-    // 第 44 列内容变化时，自动刷新手牌图片的蒙层
-    function onTargetChange(input) {
+    // 最后一列变动时，实时通知手牌列刷新图片蒙层
+    function onLastColChange(input) {
         const row = input.closest('tr');
-        // 手牌输入框在第 7 列（row.cells 索引为 7）
-        const handInput = row.cells[7].querySelector('.hand-code-input');
+        const handInput = row.cells[6].querySelector('.hand-code-input');
         if(handInput) updateVisual(handInput);
     }
 
@@ -189,10 +186,10 @@
             
             if (i === 0) {
                 cell.innerHTML = `<button class="btn-danger" onclick="removeRow(this)">删</button>`;
-            } else if (i === 6) { // 手牌编码列
+            } else if (i === 6) { // 第 7 列（索引 6）手牌列
                 cell.innerHTML = `<input type="text" class="hand-code-input" oninput="updateVisual(this)"><div class="mj-view"></div>`;
-            } else if (i === 43) { // 第 44 列（索引 43）
-                cell.innerHTML = `<input type="text" oninput="onTargetChange(this)">`;
+            } else if (i === headerCells.length - 1) { // 动态判断最后一列
+                cell.innerHTML = `<input type="text" oninput="onLastColChange(this)">`;
             } else {
                 cell.innerHTML = `<input type="text">`;
             }
@@ -214,6 +211,10 @@
             const cell = rows[i].insertCell(-1);
             cell.className = "col-attr";
             cell.innerHTML = `<input type="text">`;
+            // 如果是新增的列，需要给它绑定联动事件（因为它成了新的“最后一列”）
+            if (i === rows.length - 1) {
+                 cell.querySelector('input').oninput = function() { onLastColChange(this); };
+            }
         }
     }
 
@@ -262,11 +263,12 @@
                         const inputField = cell.querySelector('input');
                         if(inputField) {
                             inputField.value = data;
-                            // 导入后，手牌列自动渲染图片并应用蒙层
-                            if(dIdx === 5) updateVisual(inputField); 
                         }
                     }
                 });
+                // 导入完一行后，手动触发一次手牌渲染
+                const handInput = lastRow.cells[6].querySelector('.hand-code-input');
+                if(handInput) updateVisual(handInput);
             }
         };
         reader.readAsText(file);
