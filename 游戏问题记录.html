@@ -1019,40 +1019,9 @@
       let currentImages = [];
       let selectedTag = "";
 
-      const seedRecords = [
-        {
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + 1),
-          problem: "断线重连后，当前可操作按钮未恢复显示",
-          tags: ["断线重连", "游戏逻辑"],
-          collectInfo: "玩家ID、房间号、小局号、断线时间、重连时间、客户端版本、网络切换情况、客户端日志、服务端操作状态。",
-          images: [],
-          reason: "客户端重连成功后只恢复了桌面牌面数据，没有重新拉取当前玩家可操作状态。",
-          solution: "重连流程补充操作状态同步接口；收到牌桌快照后重新计算按钮状态，并增加超时兜底拉取。",
-          createdAt: "2026-07-03T09:30:00.000Z",
-          updatedAt: "2026-07-03T09:30:00.000Z"
-        },
-        {
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + 2),
-          problem: "小局结算显示分数与房间累计分不一致",
-          tags: ["结算", "游戏逻辑"],
-          collectInfo: "游戏玩法、规则配置、房间号、小局号、四名玩家的小局结算分、房间累计分、复盘文件、结算日志。",
-          images: [],
-          reason: "特殊承包结算分已计入小局结算，但房间累计分使用了未包含承包加成的旧字段。",
-          solution: "统一累计分数据源，改为读取最终结算分字段；补充承包、杠分、一炮多响等专项回归用例。",
-          createdAt: "2026-07-02T07:20:00.000Z",
-          updatedAt: "2026-07-02T07:20:00.000Z"
-        },
-        {
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + 3),
-          problem: "关闭互动道具后，重新进入房间仍能看到他人发送的道具",
-          tags: ["配置", "界面显示"],
-          collectInfo: "玩家ID、开关变更时间、进入的游戏与房间、客户端版本、设置接口请求与返回、账号配置缓存。",
-          images: [],
-          reason: "互动道具开关仅保存在当前游戏本地配置中，未按玩家ID同步至账号级配置。",
-          solution: "开关状态改为服务端按玩家ID保存，进入任意游戏房间时读取统一状态；本地缓存只作为展示加速。",
-          createdAt: "2026-07-01T12:10:00.000Z",
-          updatedAt: "2026-07-01T12:10:00.000Z"
-        }
+       [
+        
+       
       ];
 
       function loadRecords() {
