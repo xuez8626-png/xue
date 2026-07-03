@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>游戏问题记录本（标签筛选版）</title>
+  <style>
+    :root {
+      --bg: #f3f7f5;
+      --panel: #ffffff;
+      --primary: #0f7b63;
+      --primary-dark: #0a624f;
+      --primary-2: #159478;
+      --primary-soft: #e9f7f2;
+      --text: #1f2d2a;
+      --muted: #71817d;
+      --line: #dce8e4;
+      --danger: #d84c4c;
+      --warning: #b96d0c;
+      --shadow: 0 14px 38px rgba(20, 64, 53, 0.09);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(56, 181, 144, .11), transparent 28%),
+        radial-gradient(circle at 92% 4%, rgba(31, 144, 117, .08), transparent 24%),
+        var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    body.modal-open { overflow: hidden; }
+
+    button, input, textarea { font: inherit; }
+
+    .app {
+      width: min(1480px, calc(100% - 36px));
+      margin: 28px auto 48px;
+    }
+
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(26px, 3vw, 38px);
+      letter-spacing: .4px;
+    }
+
+    .brand p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      appearance: none;
+      border: 0;
+      border-radius: 11px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: .2s ease;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 7px 18px rgba(15, 123, 99, .22);
+    }
+
+    .btn-secondary {
+      color: var(--primary);
+      background: var(--primary-soft);
+      border: 1px solid #cfe9df;
+    }
+
+    .btn-ghost {
+      color: #586864;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      background: #fff2f2;
+      border: 1px solid #f2cccc;
+    }
+
+    .overview {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      background: rgba(255,255,255,.9);
+      border: 1px solid rgba(210, 230, 223, .95);
+      border-radius: 15px;
+      padding: 17px 18px;
+      box-shadow: 0 7px 22px rgba(23, 83, 68, .05);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 7px;
+    }
+
+    .metric-value {
+      font-size: 28px;
+      font-weight: 760;
+      line-height: 1;
+    }
+
+    .records-panel {
+      background: rgba(255,255,255,.95);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      min-height: 600px;
+    }
+
+    .records-toolbar {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: rgba(255,255,255,.96);
+    }
+
+    .list-heading {
+      min-width: 190px;
+    }
+
+    .list-heading h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .list-heading p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    .search-wrap {
+      position: relative;
+      width: min(560px, 100%);
+    }
+
+    .search-wrap::before {
+      content: "⌕";
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-52%);
+      color: #7a8c87;
+      font-size: 21px;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 42px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      outline: none;
+      padding: 0 13px 0 40px;
+      background: #f9fbfa;
+      color: var(--text);
+      transition: .2s ease;
+    }
+
+    .search-input:focus {
+      border-color: #74bda8;
+      box-shadow: 0 0 0 3px rgba(28, 151, 119, .11);
+      background: #fff;
+    }
+
+    .tag-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 12px 20px;
+      border-bottom: 1px solid #edf2f0;
+      background: #fbfcfc;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+
+    .tag-filter-title {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+      margin-right: 2px;
+    }
+
+    .tag-filter {
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: #fff;
+      color: #53635e;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 680;
+      transition: .18s ease;
+    }
+
+    .tag-filter:hover {
+      border-color: #9ccabb;
+      color: var(--primary);
+      background: #f5fbf8;
+    }
+
+    .tag-filter.active {
+      color: #fff;
+      border-color: var(--primary);
+      background: var(--primary);
+      box-shadow: 0 4px 12px rgba(15, 123, 99, .18);
+    }
+
+    .tag-filter-count {
+      margin-left: 4px;
+      opacity: .78;
+    }
+
+    .records-meta {
+      padding: 11px 20px;
+      color: var(--muted);
+      font-size: 13px;
+      border-bottom: 1px solid #edf2f0;
+      background: #fbfcfc;
+    }
+
+    .records {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .record-card {
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: #fff;
+      overflow: hidden;
+      transition: .22s ease;
+    }
+
+    .record-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(24, 75, 62, .08);
+      border-color: #bddbd1;
+    }
+
+    .record-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 18px 20px 14px;
+    }
+
+    .record-title-wrap { min-width: 0; }
+
+    .record-index {
+      display: inline-block;
+      margin-bottom: 8px;
+      color: var(--primary);
+      background: var(--primary-soft);
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .record-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .record-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 9px;
+    }
+
+    .record-tag {
+      border: 1px solid #cce5dc;
+      border-radius: 999px;
+      padding: 4px 9px;
+      color: var(--primary-dark);
+      background: var(--primary-soft);
+      font-size: 11px;
+      font-weight: 720;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .record-tag:hover {
+      color: #fff;
+      border-color: var(--primary);
+      background: var(--primary);
+    }
+
+    .record-time {
+      color: #8a9995;
+      font-size: 12px;
+      margin-top: 9px;
+    }
+
+    .record-actions {
+      display: flex;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 9px;
+      padding: 7px 11px;
+      cursor: pointer;
+      color: #667671;
+      font-size: 12px;
+      transition: .18s ease;
+    }
+
+    .icon-btn:hover {
+      border-color: #9dcbbc;
+      color: var(--primary);
+      background: #f5fbf8;
+    }
+
+    .icon-btn.delete:hover {
+      border-color: #e7b1b1;
+      color: var(--danger);
+      background: #fff5f5;
+    }
+
+    .record-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1.2fr;
+      border-top: 1px solid var(--line);
+    }
+
+    .record-section {
+      padding: 15px 18px 17px;
+      border-right: 1px solid var(--line);
+      min-width: 0;
+    }
+
+    .record-section:last-child { border-right: 0; }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 760;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .section-content {
+      font-size: 14px;
+      line-height: 1.72;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .empty-text {
+      color: #9aa7a3;
+      font-style: italic;
+    }
+
+    .record-images-wrap {
+      border-top: 1px solid #edf2f0;
+      padding: 13px 18px 17px;
+    }
+
+    .record-images-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 760;
+      margin-bottom: 9px;
+    }
+
+    .record-images {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .record-image {
+      width: 96px;
+      height: 74px;
+      object-fit: cover;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+      cursor: zoom-in;
+      background: #f1f4f3;
+    }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      min-height: 440px;
+      color: var(--muted);
+      padding: 30px;
+    }
+
+    .empty-state .emoji {
+      font-size: 52px;
+      margin-bottom: 12px;
+      opacity: .8;
+    }
+
+    .empty-state h3 {
+      margin: 0 0 8px;
+      color: #4d5d58;
+    }
+
+    .empty-state p {
+      margin: 0 0 18px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    /* 表单弹窗 */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(11, 28, 24, .58);
+      backdrop-filter: blur(3px);
+      z-index: 80;
+    }
+
+    .modal.open { display: flex; }
+
+    .modal-dialog {
+      width: min(880px, 96vw);
+      height: min(92vh, 920px);
+      max-height: 92vh;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 26px 80px rgba(4, 28, 21, .28);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: modalIn .2s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(14px) scale(.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-head {
+      padding: 17px 22px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background: #fbfcfc;
+    }
+
+    .modal-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .edit-badge {
+      display: none;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #fff4df;
+      color: var(--warning);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #687873;
+      cursor: pointer;
+      font-size: 25px;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      background: #eef4f2;
+      color: var(--primary);
+    }
+
+    #issueForm {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .form-body {
+      flex: 1;
+      min-height: 0;
+      padding: 20px 22px 24px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-gutter: stable;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .field { margin-bottom: 17px; }
+
+    .field label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .required::after {
+      content: " *";
+      color: var(--danger);
+    }
+
+    .field-help {
+      display: block;
+      margin-top: 6px;
+      color: #879691;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .input, .textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      outline: none;
+      background: #fbfcfc;
+      color: var(--text);
+      padding: 11px 12px;
+      transition: .2s ease;
+    }
+
+    .textarea {
+      resize: vertical;
+      min-height: 92px;
+      line-height: 1.65;
+    }
+
+    .textarea.problem { min-height: 105px; }
+    .textarea.detail { min-height: 125px; }
+
+    .input:focus, .textarea:focus {
+      background: #fff;
+      border-color: #69b89f;
+      box-shadow: 0 0 0 3px rgba(28, 151, 119, .1);
+    }
+
+    .upload-zone {
+      border: 1.5px dashed #a9cbc0;
+      border-radius: 12px;
+      padding: 17px 12px;
+      text-align: center;
+      background: #f7fbf9;
+      color: var(--muted);
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    .upload-icon {
+      display: block;
+      font-size: 25px;
+      margin-bottom: 5px;
+    }
+
+    .upload-zone strong {
+      color: var(--primary);
+      font-size: 14px;
+    }
+
+    .upload-zone small {
+      display: block;
+      margin-top: 5px;
+      font-size: 12px;
+      color: #8a9995;
+    }
+
+    #imageInput { display: none; }
+
+    .preview-list {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .preview-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #f0f3f2;
+    }
+
+    .preview-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .preview-remove {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 0;
+      cursor: pointer;
+      color: #fff;
+      background: rgba(22, 31, 29, .72);
+      line-height: 22px;
+      padding: 0;
+    }
+
+    .modal-foot {
+      flex: 0 0 auto;
+      padding: 14px 22px 18px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      background: #fff;
+      box-shadow: 0 -6px 16px rgba(18, 58, 48, .04);
+    }
+
+    /* 图片预览 */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      background: rgba(10, 22, 19, .82);
+      z-index: 120;
+    }
+
+    .lightbox.open { display: flex; }
+
+    .lightbox img {
+      max-width: min(1100px, 94vw);
+      max-height: 88vh;
+      border-radius: 12px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.35);
+      background: #fff;
+    }
+
+    .lightbox-close {
+      position: fixed;
+      top: 20px;
+      right: 22px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(0,0,0,.3);
+      color: #fff;
+      font-size: 25px;
+      cursor: pointer;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 30px;
+      transform: translate(-50%, 20px);
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: rgba(20, 43, 37, .94);
+      color: #fff;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: .25s ease;
+      z-index: 200;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @media (max-width: 900px) {
+      .records-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .toolbar-right {
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      .search-wrap { max-width: none; }
+      .record-grid { grid-template-columns: 1fr; }
+
+      .record-section {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .record-section:last-child { border-bottom: 0; }
+      .preview-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        width: min(100% - 20px, 1480px);
+        margin-top: 16px;
+      }
+
+      .header { flex-direction: column; }
+      .header-actions { width: 100%; justify-content: stretch; }
+      .header-actions .btn { flex: 1; }
+
+      .overview { grid-template-columns: 1fr 1fr; }
+      .overview .metric:last-child { grid-column: 1 / -1; }
+
+      .toolbar-right {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .record-top { flex-direction: column; }
+      .record-actions { width: 100%; }
+      .record-actions .icon-btn { flex: 1; }
+
+      .modal {
+        padding: 10px;
+        align-items: stretch;
+      }
+
+      .modal-dialog {
+        width: 100%;
+        height: calc(100dvh - 20px);
+        max-height: calc(100dvh - 20px);
+        margin: auto;
+      }
+
+      .form-row { grid-template-columns: 1fr; gap: 0; }
+      .preview-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 440px) {
+      .overview { grid-template-columns: 1fr; }
+      .overview .metric:last-child { grid-column: auto; }
+      .preview-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+      .form-body {
+        padding: 16px 16px 22px;
+      }
+
+      .modal-foot {
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      }
+
+      .modal-foot .btn { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <div class="brand">
+        <h1>游戏问题记录本</h1>
+        <p>集中记录游戏问题、排查材料、原因与解决方案，便于测试、开发和产品统一跟进。</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" id="exportBtn">导出记录</button>
+        <button class="btn btn-danger" id="clearBtn">清空全部</button>
+        <button class="btn btn-primary" id="newBtn">＋ 录入问题</button>
+      </div>
+    </header>
+
+    <section class="overview" aria-label="问题统计">
+      <div class="metric">
+        <div class="metric-label">问题总数</div>
+        <div class="metric-value" id="totalCount">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">含图片记录</div>
+        <div class="metric-value" id="imageCount">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">已填写解决方案</div>
+        <div class="metric-value" id="solutionCount">0</div>
+      </div>
+    </section>
+
+    <section class="records-panel">
+      <div class="records-toolbar">
+        <div class="list-heading">
+          <h2>问题记录列表</h2>
+          <p>按最近更新时间倒序展示</p>
+        </div>
+        <div class="toolbar-right">
+          <div class="search-wrap">
+            <input class="search-input" id="searchInput" type="search"
+              placeholder="搜索问题、需收集的信息、原因或解决方案……" />
+          </div>
+          <button class="btn btn-secondary" id="toolbarNewBtn">新增问题</button>
+        </div>
+      </div>
+      <div class="tag-filter-bar" id="tagFilters" aria-label="问题标签筛选">
+        <span class="tag-filter-title">标签筛选</span>
+        <button class="tag-filter active" type="button" data-tag="">全部</button>
+      </div>
+      <div class="records-meta" id="recordsMeta">共 0 条</div>
+      <div class="records" id="records"></div>
+    </section>
+  </main>
+
+  <!-- 新增/编辑问题弹窗 -->
+  <div class="modal" id="issueModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <div class="modal-title-wrap">
+          <h2 class="modal-title" id="modalTitle">新增问题</h2>
+          <span class="edit-badge" id="editBadge">编辑中</span>
+        </div>
+        <button class="modal-close" id="modalClose" type="button" aria-label="关闭">×</button>
+      </div>
+
+      <form id="issueForm">
+        <div class="form-body">
+          <div class="field">
+            <label class="required" for="problem">问题</label>
+            <textarea class="textarea problem" id="problem" maxlength="500"
+              placeholder="例如：断线重连后，碰/杠操作按钮未恢复显示" required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="tagInput">问题标签</label>
+            <input class="input" id="tagInput" type="text" maxlength="200"
+              list="commonTags" placeholder="例如：登录、结算、断线重连、界面显示" />
+            <datalist id="commonTags">
+              <option value="登录"></option>
+              <option value="支付"></option>
+              <option value="匹配"></option>
+              <option value="游戏逻辑"></option>
+              <option value="结算"></option>
+              <option value="断线重连"></option>
+              <option value="界面显示"></option>
+              <option value="性能"></option>
+              <option value="兼容性"></option>
+              <option value="配置"></option>
+            </datalist>
+            <span class="field-help">支持自定义多个标签，使用中文逗号、英文逗号或空格分隔。</span>
+          </div>
+
+          <div class="field">
+            <label for="collectInfo">需收集的信息</label>
+            <textarea class="textarea detail" id="collectInfo" maxlength="1500"
+              placeholder="例如：玩家ID、游戏ID、房间号、小局号、发生时间、客户端版本、网络类型、复盘文件、日志等"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="imageInput">图片</label>
+            <label class="upload-zone" id="uploadZone" for="imageInput">
+              <span class="upload-icon">＋</span>
+              <strong>点击或拖拽上传图片</strong>
+              <small>支持 JPG、PNG、WEBP；单张不超过 3MB，最多 6 张</small>
+            </label>
+            <input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+            <div class="preview-list" id="previewList"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label for="reason">原因</label>
+              <textarea class="textarea detail" id="reason" maxlength="1500"
+                placeholder="记录最终定位到的原因；未定位时可填写当前排查结论"></textarea>
+            </div>
+            <div class="field">
+              <label for="solution">解决方案</label>
+              <textarea class="textarea detail" id="solution" maxlength="2000"
+                placeholder="记录临时处理方案、最终修复方案、上线版本及验证结果"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-foot">
+          <button class="btn btn-ghost" type="button" id="cancelBtn">取消</button>
+          <button class="btn btn-primary" type="submit" id="saveBtn">保存问题</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+    <button class="lightbox-close" id="lightboxClose" aria-label="关闭">×</button>
+    <img id="lightboxImage" alt="问题图片大图预览" />
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "gameIssueNotebook_v1";
+      const MAX_IMAGES = 6;
+      const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
+
+      const els = {
+        issueModal: document.getElementById("issueModal"),
+        issueForm: document.getElementById("issueForm"),
+        problem: document.getElementById("problem"),
+        tagInput: document.getElementById("tagInput"),
+        collectInfo: document.getElementById("collectInfo"),
+        reason: document.getElementById("reason"),
+        solution: document.getElementById("solution"),
+        imageInput: document.getElementById("imageInput"),
+        uploadZone: document.getElementById("uploadZone"),
+        previewList: document.getElementById("previewList"),
+        records: document.getElementById("records"),
+        searchInput: document.getElementById("searchInput"),
+        tagFilters: document.getElementById("tagFilters"),
+        totalCount: document.getElementById("totalCount"),
+        imageCount: document.getElementById("imageCount"),
+        solutionCount: document.getElementById("solutionCount"),
+        recordsMeta: document.getElementById("recordsMeta"),
+        modalTitle: document.getElementById("modalTitle"),
+        editBadge: document.getElementById("editBadge"),
+        saveBtn: document.getElementById("saveBtn"),
+        modalClose: document.getElementById("modalClose"),
+        cancelBtn: document.getElementById("cancelBtn"),
+        newBtn: document.getElementById("newBtn"),
+        toolbarNewBtn: document.getElementById("toolbarNewBtn"),
+        clearBtn: document.getElementById("clearBtn"),
+        exportBtn: document.getElementById("exportBtn"),
+        toast: document.getElementById("toast"),
+        lightbox: document.getElementById("lightbox"),
+        lightboxImage: document.getElementById("lightboxImage"),
+        lightboxClose: document.getElementById("lightboxClose"),
+      };
+
+      let records = [];
+      let editingId = null;
+      let currentImages = [];
+      let selectedTag = "";
+
+      const seedRecords = [
+        {
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + 1),
+          problem: "断线重连后，当前可操作按钮未恢复显示",
+          tags: ["断线重连", "游戏逻辑"],
+          collectInfo: "玩家ID、房间号、小局号、断线时间、重连时间、客户端版本、网络切换情况、客户端日志、服务端操作状态。",
+          images: [],
+          reason: "客户端重连成功后只恢复了桌面牌面数据，没有重新拉取当前玩家可操作状态。",
+          solution: "重连流程补充操作状态同步接口；收到牌桌快照后重新计算按钮状态，并增加超时兜底拉取。",
+          createdAt: "2026-07-03T09:30:00.000Z",
+          updatedAt: "2026-07-03T09:30:00.000Z"
+        },
+        {
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + 2),
+          problem: "小局结算显示分数与房间累计分不一致",
+          tags: ["结算", "游戏逻辑"],
+          collectInfo: "游戏玩法、规则配置、房间号、小局号、四名玩家的小局结算分、房间累计分、复盘文件、结算日志。",
+          images: [],
+          reason: "特殊承包结算分已计入小局结算，但房间累计分使用了未包含承包加成的旧字段。",
+          solution: "统一累计分数据源，改为读取最终结算分字段；补充承包、杠分、一炮多响等专项回归用例。",
+          createdAt: "2026-07-02T07:20:00.000Z",
+          updatedAt: "2026-07-02T07:20:00.000Z"
+        },
+        {
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + 3),
+          problem: "关闭互动道具后，重新进入房间仍能看到他人发送的道具",
+          tags: ["配置", "界面显示"],
+          collectInfo: "玩家ID、开关变更时间、进入的游戏与房间、客户端版本、设置接口请求与返回、账号配置缓存。",
+          images: [],
+          reason: "互动道具开关仅保存在当前游戏本地配置中，未按玩家ID同步至账号级配置。",
+          solution: "开关状态改为服务端按玩家ID保存，进入任意游戏房间时读取统一状态；本地缓存只作为展示加速。",
+          createdAt: "2026-07-01T12:10:00.000Z",
+          updatedAt: "2026-07-01T12:10:00.000Z"
+        }
+      ];
+
+      function loadRecords() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          records = saved ? JSON.parse(saved) : seedRecords;
+          records = records.map(item => ({
+            ...item,
+            tags: Array.isArray(item.tags) ? item.tags : []
+          }));
+          if (!saved) saveRecords();
+        } catch (error) {
+          console.error(error);
+          records = seedRecords;
+          showToast("读取本地记录失败，已加载示例数据");
+        }
+      }
+
+      function saveRecords() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+          return true;
+        } catch (error) {
+          console.error(error);
+          showToast("保存失败：浏览器本地存储空间可能已满");
+          return false;
+        }
+      }
+
+      function escapeHtml(value = "") {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function formatDate(value) {
+        if (!value) return "未知时间";
+        return new Intl.DateTimeFormat("zh-CN", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        }).format(new Date(value));
+      }
+
+      function showToast(message) {
+        els.toast.textContent = message;
+        els.toast.classList.add("show");
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 2200);
+      }
+
+      function renderStats() {
+        els.totalCount.textContent = records.length;
+        els.imageCount.textContent = records.filter(item => item.images?.length).length;
+        els.solutionCount.textContent = records.filter(item => item.solution?.trim()).length;
+      }
+
+      function parseTags(value) {
+        return [...new Set(
+          String(value || "")
+            .split(/[，,、\s]+/)
+            .map(tag => tag.trim())
+            .filter(Boolean)
+            .map(tag => tag.slice(0, 20))
+        )].slice(0, 10);
+      }
+
+      function getTagStats() {
+        const counts = new Map();
+        records.forEach(item => {
+          (item.tags || []).forEach(tag => {
+            counts.set(tag, (counts.get(tag) || 0) + 1);
+          });
+        });
+        return [...counts.entries()]
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh-CN"));
+      }
+
+      function renderTagFilters() {
+        const stats = getTagStats();
+        if (selectedTag && !stats.some(([tag]) => tag === selectedTag)) {
+          selectedTag = "";
+        }
+
+        els.tagFilters.innerHTML = `
+          <span class="tag-filter-title">标签筛选</span>
+          <button class="tag-filter ${selectedTag ? "" : "active"}" type="button" data-tag="">
+            全部<span class="tag-filter-count">${records.length}</span>
+          </button>
+          ${stats.map(([tag, count]) => `
+            <button class="tag-filter ${selectedTag === tag ? "active" : ""}" type="button"
+              data-tag="${escapeHtml(tag)}">
+              ${escapeHtml(tag)}<span class="tag-filter-count">${count}</span>
+            </button>
+          `).join("")}
+        `;
+      }
+
+      function getFilteredRecords() {
+        const keyword = els.searchInput.value.trim().toLowerCase();
+
+        return records.filter(item => {
+          const matchesTag = !selectedTag || (item.tags || []).includes(selectedTag);
+          const matchesKeyword = !keyword || [
+            item.problem,
+            ...(item.tags || []),
+            item.collectInfo,
+            item.reason,
+            item.solution
+          ].some(value => String(value || "").toLowerCase().includes(keyword));
+
+          return matchesTag && matchesKeyword;
+        });
+      }
+
+      function textOrEmpty(value) {
+        const text = String(value || "").trim();
+        return text ? escapeHtml(text) : '<span class="empty-text">暂未填写</span>';
+      }
+
+      function renderRecords() {
+        renderTagFilters();
+
+        const list = getFilteredRecords()
+          .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+
+        const activeConditions = [];
+        if (selectedTag) activeConditions.push(`标签“${selectedTag}”`);
+        if (els.searchInput.value.trim()) activeConditions.push(`关键词“${els.searchInput.value.trim()}”`);
+
+        els.recordsMeta.textContent = activeConditions.length
+          ? `共 ${records.length} 条记录，按${activeConditions.join("、")}筛选后显示 ${list.length} 条`
+          : `共 ${records.length} 条问题记录`;
+
+        if (!list.length) {
+          els.records.innerHTML = `
+            <div class="empty-state">
+              <div>
+                <div class="emoji">🗒️</div>
+                <h3>${records.length ? "没有匹配的记录" : "还没有问题记录"}</h3>
+                <p>${records.length ? "可更换关键词重新搜索。" : "点击“录入问题”，在弹窗中填写问题内容。"}</p>
+                ${records.length ? "" : '<button class="btn btn-primary" type="button" data-empty-new>录入第一个问题</button>'}
+              </div>
+            </div>`;
+          renderStats();
+          return;
+        }
+
+        els.records.innerHTML = list.map((item, index) => {
+          const tagsHtml = (item.tags || []).length
+            ? `<div class="record-tags">
+                ${(item.tags || []).map(tag =>
+                  `<button class="record-tag" type="button" data-filter-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`
+                ).join("")}
+              </div>`
+            : "";
+
+          const imagesHtml = (item.images || []).length
+            ? `<div class="record-images-wrap">
+                <div class="record-images-label">问题图片（${item.images.length}）</div>
+                <div class="record-images">
+                  ${(item.images || []).map((src, imageIndex) =>
+                    `<img class="record-image" src="${src}" alt="问题图片 ${imageIndex + 1}"
+                      data-lightbox-src="${src}" />`
+                  ).join("")}
+                </div>
+              </div>`
+            : "";
+
+          return `
+            <article class="record-card" data-id="${item.id}">
+              <div class="record-top">
+                <div class="record-title-wrap">
+                  <span class="record-index">问题 ${String(index + 1).padStart(2, "0")}</span>
+                  <h3 class="record-title">${escapeHtml(item.problem)}</h3>
+                  ${tagsHtml}
+                  <div class="record-time">
+                    创建：${formatDate(item.createdAt)}
+                    ${item.updatedAt && item.updatedAt !== item.createdAt ? ` · 更新：${formatDate(item.updatedAt)}` : ""}
+                  </div>
+                </div>
+                <div class="record-actions">
+                  <button class="icon-btn edit" type="button" data-action="edit">编辑</button>
+                  <button class="icon-btn delete" type="button" data-action="delete">删除</button>
+                </div>
+              </div>
+              <div class="record-grid">
+                <section class="record-section">
+                  <div class="section-label">需收集的信息</div>
+                  <div class="section-content">${textOrEmpty(item.collectInfo)}</div>
+                </section>
+                <section class="record-section">
+                  <div class="section-label">原因</div>
+                  <div class="section-content">${textOrEmpty(item.reason)}</div>
+                </section>
+                <section class="record-section">
+                  <div class="section-label">解决方案</div>
+                  <div class="section-content">${textOrEmpty(item.solution)}</div>
+                </section>
+              </div>
+              ${imagesHtml}
+            </article>`;
+        }).join("");
+
+        renderStats();
+      }
+
+      function renderImagePreviews() {
+        els.previewList.innerHTML = currentImages.map((src, index) => `
+          <div class="preview-item">
+            <img src="${src}" alt="待上传图片 ${index + 1}" />
+            <button class="preview-remove" type="button" data-remove-index="${index}" aria-label="移除图片">×</button>
+          </div>
+        `).join("");
+      }
+
+      function resetForm() {
+        editingId = null;
+        currentImages = [];
+        els.issueForm.reset();
+        els.modalTitle.textContent = "新增问题";
+        els.saveBtn.textContent = "保存问题";
+        els.editBadge.style.display = "none";
+        renderImagePreviews();
+      }
+
+      function openModal(mode = "new", id = null) {
+        resetForm();
+
+        if (mode === "edit" && id) {
+          const item = records.find(record => record.id === id);
+          if (!item) return;
+
+          editingId = id;
+          els.problem.value = item.problem || "";
+          els.tagInput.value = (item.tags || []).join("，");
+          els.collectInfo.value = item.collectInfo || "";
+          els.reason.value = item.reason || "";
+          els.solution.value = item.solution || "";
+          currentImages = [...(item.images || [])];
+          els.modalTitle.textContent = "编辑问题";
+          els.saveBtn.textContent = "保存修改";
+          els.editBadge.style.display = "inline-block";
+          renderImagePreviews();
+        }
+
+        els.issueModal.classList.add("open");
+        document.body.classList.add("modal-open");
+        setTimeout(() => els.problem.focus(), 120);
+      }
+
+      function closeModal() {
+        els.issueModal.classList.remove("open");
+        document.body.classList.remove("modal-open");
+        resetForm();
+      }
+
+      function deleteRecord(id) {
+        const item = records.find(record => record.id === id);
+        if (!item) return;
+        if (!confirm(`确定删除问题“${item.problem.slice(0, 28)}${item.problem.length > 28 ? "…" : ""}”吗？`)) return;
+
+        records = records.filter(record => record.id !== id);
+        saveRecords();
+        renderRecords();
+        showToast("问题记录已删除");
+      }
+
+      function compressImage(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = reject;
+          reader.onload = () => {
+            const img = new Image();
+            img.onerror = reject;
+            img.onload = () => {
+              const maxSide = 1600;
+              let width = img.width;
+              let height = img.height;
+
+              if (Math.max(width, height) > maxSide) {
+                const ratio = maxSide / Math.max(width, height);
+                width = Math.round(width * ratio);
+                height = Math.round(height * ratio);
+              }
+
+              const canvas = document.createElement("canvas");
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext("2d");
+              ctx.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL("image/jpeg", .82));
+            };
+            img.src = reader.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function handleFiles(files) {
+        const fileList = [...files];
+        const available = MAX_IMAGES - currentImages.length;
+        if (available <= 0) {
+          showToast(`最多上传 ${MAX_IMAGES} 张图片`);
+          return;
+        }
+
+        const validFiles = fileList
+          .filter(file => {
+            if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+              showToast(`已忽略非图片文件：${file.name}`);
+              return false;
+            }
+            if (file.size > MAX_IMAGE_SIZE) {
+              showToast(`图片超过 3MB：${file.name}`);
+              return false;
+            }
+            return true;
+          })
+          .slice(0, available);
+
+        for (const file of validFiles) {
+          try {
+            currentImages.push(await compressImage(file));
+          } catch (error) {
+            console.error(error);
+            showToast(`图片读取失败：${file.name}`);
+          }
+        }
+
+        if (fileList.length > available) {
+          showToast(`最多保留 ${MAX_IMAGES} 张图片`);
+        }
+
+        els.imageInput.value = "";
+        renderImagePreviews();
+      }
+
+      els.issueForm.addEventListener("submit", event => {
+        event.preventDefault();
+        const problem = els.problem.value.trim();
+
+        if (!problem) {
+          els.problem.focus();
+          showToast("请填写问题内容");
+          return;
+        }
+
+        const now = new Date().toISOString();
+        const payload = {
+          problem,
+          tags: parseTags(els.tagInput.value),
+          collectInfo: els.collectInfo.value.trim(),
+          images: [...currentImages],
+          reason: els.reason.value.trim(),
+          solution: els.solution.value.trim(),
+          updatedAt: now
+        };
+
+        const wasEditing = Boolean(editingId);
+
+        if (wasEditing) {
+          const index = records.findIndex(item => item.id === editingId);
+          if (index === -1) return;
+          records[index] = { ...records[index], ...payload };
+        } else {
+          records.push({
+            id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random()}`,
+            ...payload,
+            createdAt: now
+          });
+        }
+
+        if (!saveRecords()) return;
+        closeModal();
+        renderRecords();
+        showToast(wasEditing ? "问题记录已更新" : "问题记录已保存");
+      });
+
+      els.imageInput.addEventListener("change", event => handleFiles(event.target.files));
+
+      ["dragenter", "dragover"].forEach(type => {
+        els.uploadZone.addEventListener(type, event => {
+          event.preventDefault();
+          els.uploadZone.classList.add("dragover");
+        });
+      });
+
+      ["dragleave", "drop"].forEach(type => {
+        els.uploadZone.addEventListener(type, event => {
+          event.preventDefault();
+          els.uploadZone.classList.remove("dragover");
+        });
+      });
+
+      els.uploadZone.addEventListener("drop", event => handleFiles(event.dataTransfer.files));
+
+      els.previewList.addEventListener("click", event => {
+        const button = event.target.closest("[data-remove-index]");
+        if (!button) return;
+        currentImages.splice(Number(button.dataset.removeIndex), 1);
+        renderImagePreviews();
+      });
+
+      els.records.addEventListener("click", event => {
+        const filterTag = event.target.closest("[data-filter-tag]");
+        if (filterTag) {
+          selectedTag = filterTag.dataset.filterTag;
+          renderRecords();
+          document.querySelector(".records-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+
+        const emptyNew = event.target.closest("[data-empty-new]");
+        if (emptyNew) {
+          openModal("new");
+          return;
+        }
+
+        const image = event.target.closest("[data-lightbox-src]");
+        if (image) {
+          els.lightboxImage.src = image.dataset.lightboxSrc;
+          els.lightbox.classList.add("open");
+          return;
+        }
+
+        const card = event.target.closest(".record-card");
+        const button = event.target.closest("[data-action]");
+        if (!card || !button) return;
+
+        if (button.dataset.action === "edit") openModal("edit", card.dataset.id);
+        if (button.dataset.action === "delete") deleteRecord(card.dataset.id);
+      });
+
+      els.searchInput.addEventListener("input", renderRecords);
+
+      els.tagFilters.addEventListener("click", event => {
+        const button = event.target.closest("[data-tag]");
+        if (!button) return;
+        selectedTag = button.dataset.tag || "";
+        renderRecords();
+      });
+
+      els.newBtn.addEventListener("click", () => openModal("new"));
+      els.toolbarNewBtn.addEventListener("click", () => openModal("new"));
+      els.modalClose.addEventListener("click", closeModal);
+      els.cancelBtn.addEventListener("click", closeModal);
+
+      els.issueModal.addEventListener("click", event => {
+        if (event.target === els.issueModal) closeModal();
+      });
+
+      els.clearBtn.addEventListener("click", () => {
+        if (!records.length) {
+          showToast("当前没有可清空的记录");
+          return;
+        }
+        if (!confirm("确定清空全部问题记录吗？此操作无法撤销。")) return;
+        records = [];
+        selectedTag = "";
+        saveRecords();
+        renderRecords();
+        showToast("全部记录已清空");
+      });
+
+      els.exportBtn.addEventListener("click", () => {
+        const exportData = records.map(({ id, problem, tags, collectInfo, reason, solution, createdAt, updatedAt, images }) => ({
+          id,
+          问题: problem,
+          问题标签: (tags || []).join("、"),
+          需收集的信息: collectInfo,
+          图片数量: images?.length || 0,
+          原因: reason,
+          解决方案: solution,
+          创建时间: createdAt,
+          更新时间: updatedAt
+        }));
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+          type: "application/json;charset=utf-8"
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `游戏问题记录_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast("记录已导出");
+      });
+
+      function closeLightbox() {
+        els.lightbox.classList.remove("open");
+        els.lightboxImage.src = "";
+      }
+
+      els.lightboxClose.addEventListener("click", closeLightbox);
+      els.lightbox.addEventListener("click", event => {
+        if (event.target === els.lightbox) closeLightbox();
+      });
+
+      document.addEventListener("keydown", event => {
+        if (event.key !== "Escape") return;
+        if (els.lightbox.classList.contains("open")) {
+          closeLightbox();
+        } else if (els.issueModal.classList.contains("open")) {
+          closeModal();
+        }
+      });
+
+      loadRecords();
+      renderRecords();
+      renderImagePreviews();
+    })();
+  </script>
+</body>
+</html>
