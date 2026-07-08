@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>外测管理后台 - 黑名单</title>
+  <style>
+    :root{
+      --nav:#001623;
+      --nav-hover:#05283a;
+      --blue:#1890ff;
+      --blue-weak:#e6f7ff;
+      --bg:#f0f2f5;
+      --line:#e8e8e8;
+      --text:#262626;
+      --muted:#8c8c8c;
+      --danger:#ff4d4f;
+      --header-h:44px;
+      --tab-h:38px;
+      --sidebar-w:202px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;color:var(--text);background:var(--bg);font-size:14px}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+
+    .app{height:100vh;display:flex;overflow:hidden}
+
+    /* Sidebar */
+    .sidebar{width:var(--sidebar-w);background:var(--nav);color:#d6e4ee;display:flex;flex-direction:column;flex-shrink:0}
+    .brand{height:58px;display:flex;align-items:center;padding:0 20px;gap:11px;color:#fff;font-size:20px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.03)}
+    .brand-mark{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#36d399,#0e7490);border:2px solid rgba(255,255,255,.75);box-shadow:0 0 0 3px rgba(54,211,153,.18);font-size:16px}
+    .menu{overflow:auto;padding:8px 0 22px}
+    .menu::-webkit-scrollbar{width:5px}.menu::-webkit-scrollbar-thumb{background:#294557;border-radius:4px}
+    .menu-item,.menu-title{height:44px;display:flex;align-items:center;padding:0 20px;gap:12px;color:#c5d4df;user-select:none;white-space:nowrap}
+    .menu-title{font-weight:500}
+    .menu-title .arrow{margin-left:auto;font-size:12px;color:#8aa0af}
+    .menu-icon{width:15px;text-align:center;color:#91a8b7}
+    .submenu{background:rgba(0,0,0,.12)}
+    .submenu .menu-item{padding-left:43px;height:44px;color:#c4d2dc}
+    .menu-item.active{background:var(--blue);color:#fff}
+    .menu-item.active .menu-icon{color:#fff}
+    .menu-item.disabled{cursor:default}
+    .menu-item:not(.active):hover,.menu-title:hover{background:var(--nav-hover)}
+
+    /* Main */
+    .main{flex:1;min-width:0;display:flex;flex-direction:column}
+    .topbar{height:var(--header-h);display:flex;align-items:center;background:#fff;border-bottom:1px solid var(--line);padding:0 12px;color:#666;flex-shrink:0}
+    .top-icon{font-size:20px;margin-right:22px;color:#777}
+    .top-spacer{flex:1}
+    .top-user{display:flex;align-items:center;gap:10px}
+    .avatar{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#d9d9d9;color:#fff;font-size:12px}
+
+    .tabbar{height:var(--tab-h);display:flex;align-items:flex-end;background:#fff;border-bottom:1px solid var(--line);padding-left:14px;flex-shrink:0}
+    .tab{height:34px;min-width:80px;padding:0 14px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-bottom:none;background:#fafafa;color:#555;margin-right:4px}
+    .tab.active{background:#fff;color:var(--blue)}
+    .tab .x{margin-left:9px;color:#999}
+
+    .breadcrumb{height:39px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 22px;color:#777;flex-shrink:0}
+    .breadcrumb b{color:#999;font-weight:400;margin:0 8px}
+
+    .workspace{padding:10px;background:var(--bg);overflow:auto;flex:1}
+    .panel{background:#fff;min-height:312px;padding:12px 12px 24px}
+
+    .search-row{display:flex;align-items:center;border-bottom:1px solid var(--line);padding-bottom:12px}
+    .search-group{display:flex;width:750px;max-width:70%}
+    .search-group input{height:30px;flex:1;border:1px solid #d9d9d9;border-right:none;border-radius:3px 0 0 3px;padding:0 12px;outline:none;color:#444}
+    .search-group input:focus{border-color:#40a9ff;box-shadow:0 0 0 2px rgba(24,144,255,.12)}
+    .search-group button{width:58px;height:30px;border:none;background:var(--blue);color:#fff;border-radius:0 3px 3px 0}
+
+    .section-head{height:52px;display:flex;align-items:center;justify-content:space-between}
+    .section-head h2{font-size:16px;margin:0;font-weight:500}
+    .primary{border:none;border-radius:4px;background:var(--blue);color:#fff;height:30px;padding:0 14px;display:inline-flex;align-items:center;gap:7px}
+    .primary:hover{background:#40a9ff}
+
+    .table-wrap{width:100%;overflow:auto;border-radius:3px}
+    table{width:100%;border-collapse:collapse;min-width:1060px;table-layout:fixed}
+    thead th{height:42px;background:#fafafa;font-weight:500;text-align:center;border-bottom:1px solid var(--line);padding:0 10px}
+    tbody td{height:44px;text-align:center;border-bottom:1px solid var(--line);padding:0 10px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    tbody tr:nth-child(1){background:#effaff}
+    tbody tr:hover{background:#f5fbff}
+    .status{display:inline-flex;align-items:center;justify-content:center;height:24px;padding:0 9px;border-radius:12px;font-size:12px}
+    .status.red{background:#fff1f0;color:#cf1322;border:1px solid #ffa39e}
+    .status.orange{background:#fff7e6;color:#d46b08;border:1px solid #ffd591}
+    .status.gray{background:#f5f5f5;color:#666;border:1px solid #d9d9d9}
+    .link-btn{border:none;background:none;color:var(--blue);padding:0 5px}
+    .link-btn.danger{color:var(--danger)}
+    .empty{height:150px;display:none;align-items:center;justify-content:center;color:#999;border-bottom:1px solid var(--line)}
+
+    .pager{height:58px;display:flex;align-items:center;justify-content:flex-end;gap:7px}
+    .page-btn{width:30px;height:30px;border:1px solid #d9d9d9;background:#fff;border-radius:4px;color:#777}
+    .page-btn.active{border-color:var(--blue);color:var(--blue)}
+    .page-btn:disabled{color:#ccc;background:#fafafa}
+
+    .helper{position:fixed;right:14px;bottom:14px;width:40px;height:40px;border-radius:50%;background:#fff;border:2px solid #d9d9d9;box-shadow:0 2px 8px rgba(0,0,0,.15);display:grid;place-items:center;font-size:24px}
+
+    /* Modal */
+    .mask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:30}
+    .mask.show{display:flex}
+    .modal{width:520px;background:#fff;border-radius:4px;box-shadow:0 12px 38px rgba(0,0,0,.28);overflow:hidden;animation:pop .16s ease-out}
+    @keyframes pop{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
+    .modal-head{height:52px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:16px;font-weight:500}
+    .close{border:none;background:none;font-size:22px;color:#888;line-height:1}
+    .modal-body{padding:22px 28px 12px}
+    .form-row{display:grid;grid-template-columns:110px 1fr;align-items:center;margin-bottom:18px;gap:12px}
+    .form-row label{text-align:right;color:#555}
+    .form-row label.required::before{content:"*";color:var(--danger);margin-right:4px}
+    .form-row input,.form-row select{height:34px;border:1px solid #d9d9d9;border-radius:4px;padding:0 10px;outline:none;background:#fff}
+    .form-row input:focus,.form-row select:focus{border-color:#40a9ff;box-shadow:0 0 0 2px rgba(24,144,255,.12)}
+    .form-row input[readonly]{background:#f5f5f5;color:#595959;cursor:default}
+    .form-row input[readonly]:focus{border-color:#d9d9d9;box-shadow:none}
+    .radio-group{display:flex;gap:20px;align-items:center;height:34px}
+    .radio-group label{display:flex;align-items:center;gap:6px;text-align:left;cursor:pointer;color:#444}
+    textarea{width:100%;min-height:70px;resize:vertical;border:1px solid #d9d9d9;border-radius:4px;padding:8px 10px;outline:none;font:inherit}
+    textarea:focus{border-color:#40a9ff;box-shadow:0 0 0 2px rgba(24,144,255,.12)}
+    .modal-foot{height:62px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 20px}
+    .btn{height:32px;padding:0 16px;border:1px solid #d9d9d9;border-radius:4px;background:#fff;color:#555}
+    .btn.ok{background:var(--blue);border-color:var(--blue);color:#fff}
+    .error{color:var(--danger);font-size:12px;margin:-10px 0 10px 122px;display:none}
+
+    .toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:9px 18px;border-radius:4px;z-index:60;opacity:0;pointer-events:none;transition:.2s}
+    .toast.show{opacity:1}
+
+    @media(max-width:900px){
+      :root{--sidebar-w:180px}
+      .search-group{max-width:100%;width:100%}
+      .modal{width:92vw}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">◎</span><span>外测</span></div>
+    <div class="menu">
+      <div class="menu-title"><span class="menu-icon">◉</span>分析页</div>
+      <div class="menu-title"><span class="menu-icon">▣</span>青藤宁波 <span class="arrow">⌃</span></div>
+      <div class="submenu">
+        <div class="menu-title"><span></span>数据统计 <span class="arrow">⌄</span></div>
+        <div class="menu-title"><span></span>用户中心 <span class="arrow">⌃</span></div>
+        <div class="menu-item disabled">用户信息查询</div>
+        <div class="menu-item disabled">内部充值</div>
+        <div class="menu-item active" id="blackMenu">黑名单</div>
+        <div class="menu-item disabled">玩家反馈</div>
+        <div class="menu-item disabled">账号注销信息</div>
+        <div class="menu-item disabled">用户强连服务器</div>
+      </div>
+      <div class="menu-title">发展人中心 <span class="arrow">⌄</span></div>
+      <div class="menu-title">战队 <span class="arrow">⌄</span></div>
+      <div class="menu-item disabled">充值信息查询</div>
+      <div class="menu-item disabled">房间信息查询</div>
+      <div class="menu-item disabled">活动查询</div>
+      <div class="menu-title">配置管理 <span class="arrow">⌄</span></div>
+      <div class="menu-title">平台管理 <span class="arrow">⌄</span></div>
+      <div class="menu-title">工具 <span class="arrow">⌄</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <span class="top-icon">☰</span><span class="top-icon">⟳</span>
+      <div class="top-spacer"></div>
+      <span style="margin-right:28px">♧</span>
+      <div class="top-user"><div class="avatar">游客</div><span>张雪</span></div>
+    </header>
+
+    <div class="tabbar">
+      <div class="tab">分析页 <span class="x">×</span></div>
+      <div class="tab active">黑名单 <span class="x">×</span></div>
+    </div>
+
+    <div class="breadcrumb">首页 <b>/</b> 青藤宁波 <b>/</b> 用户中心 <b>/</b> 黑名单</div>
+
+    <section class="workspace">
+      <div class="panel">
+        <div class="search-row">
+          <div class="search-group">
+            <input id="searchInput" placeholder="用户ID/唯一码/昵称" />
+            <button id="searchBtn">查询</button>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <h2>黑名单列表</h2>
+          <button class="primary" id="addBtn"><span style="font-size:19px;line-height:1">＋</span>添加用户</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <colgroup>
+              <col style="width:6%"><col style="width:14%"><col style="width:14%"><col style="width:10%"><col style="width:12%"><col style="width:16%"><col style="width:16%"><col style="width:12%">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>序号</th><th>用户ID或唯一码</th><th>用户昵称</th><th>封号时间</th><th>封号原因</th><th>添加时间</th><th>解散时间</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="empty" id="empty">暂无符合条件的数据</div>
+        </div>
+
+        <div class="pager">
+          <button class="page-btn" disabled>‹</button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">›</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="helper">👩🏻</div>
+
+<div class="mask" id="mask">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head"><span id="modalTitle">添加黑名单用户</span><button class="close" id="closeBtn">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="required">用户ID/唯一码</label>
+        <input id="userId" maxlength="20" placeholder="请输入用户ID或唯一码" autocomplete="off" />
+      </div>
+      <div class="error" id="idError">请输入有效的用户ID或唯一码</div>
+      <div class="form-row">
+        <label>用户昵称</label>
+        <input id="nickname" maxlength="20" placeholder="输入用户ID后自动查询显示" readonly />
+      </div>
+      <div class="form-row">
+        <label class="required">封号时间</label>
+        <div class="radio-group">
+          <label><input type="radio" name="duration" value="三天" checked> 三天</label>
+          <label><input type="radio" name="duration" value="七天"> 七天</label>
+          <label><input type="radio" name="duration" value="永久"> 永久</label>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="required">封号原因</label>
+        <select id="reason">
+          <option value="游戏异常">游戏异常</option>
+          <option value="游戏违规">游戏违规</option>
+          <option value="涉嫌赌博">涉嫌赌博</option>
+        </select>
+      </div>
+      <div class="form-row" style="align-items:start">
+        <label>备注</label>
+        <textarea id="remark" maxlength="100" placeholder="可补充封号说明，最多100字"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="cancelBtn">取消</button>
+      <button class="btn ok" id="saveBtn">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const data = [
+    {id:10,userId:'16035213',nickname:'开始咕咕嘎嘎',duration:'永久',reason:'涉嫌赌博',time:'2026-06-02 17:05:04',releaseTime:'永久',remark:'异常牌局核实'},
+    {id:9,userId:'16071676',nickname:'玩家',duration:'七天',reason:'游戏违规',time:'2026-06-02 11:38:16',releaseTime:'2026-06-09 11:38:16',remark:'互通id=15248501'},
+    {id:8,userId:'15248501',nickname:'海边的风',duration:'三天',reason:'游戏异常',time:'2026-06-01 20:22:43',releaseTime:'2026-06-04 20:22:43',remark:''}
+  ];
+
+  // 原型中使用本地数据模拟“根据用户ID查询数据库并返回昵称”。
+  const userDirectory = {
+    '16035213':'开始咕咕嘎嘎',
+    '16071676':'玩家',
+    '15248501':'海边的风',
+    '15237420':'清风明月',
+    '15251156':'小雪'
+  };
+
+  const tbody = document.getElementById('tbody');
+  const empty = document.getElementById('empty');
+  const mask = document.getElementById('mask');
+  const searchInput = document.getElementById('searchInput');
+  const modalTitle = document.getElementById('modalTitle');
+  const userIdInput = document.getElementById('userId');
+  const nicknameInput = document.getElementById('nickname');
+  const reasonSelect = document.getElementById('reason');
+  const remarkInput = document.getElementById('remark');
+  const idError = document.getElementById('idError');
+  let editingIndex = -1;
+  let nicknameLookupTimer = null;
+  let nicknameResolved = false;
+
+  function statusClass(duration){
+    if(duration === '永久') return 'red';
+    if(duration === '七天') return 'orange';
+    return 'gray';
+  }
+
+  function render(keyword=''){
+    const key = keyword.trim().toLowerCase();
+    const list = data.map((item,index)=>({...item,_index:index})).filter(item =>
+      !key || item.userId.toLowerCase().includes(key) || item.nickname.toLowerCase().includes(key)
+    );
+    tbody.innerHTML = list.map((item,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td title="${item.userId}">${item.userId}</td>
+        <td title="${item.nickname}">${item.nickname || '-'}</td>
+        <td><span class="status ${statusClass(item.duration)}">${item.duration}</span></td>
+        <td>${item.reason}</td>
+        <td>${item.time}</td>
+        <td>${item.releaseTime}</td>
+        <td>
+          <button class="link-btn" onclick="editItem(${item._index})">编辑</button>
+          <button class="link-btn danger" onclick="removeItem(${item._index})">删除</button>
+        </td>
+      </tr>`).join('');
+    empty.style.display = list.length ? 'none' : 'flex';
+  }
+
+  function nowString(){
+    const d = new Date();
+    const p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }
+
+  function parseDateTime(value){
+    const [datePart,timePart] = value.split(' ');
+    const [y,m,d] = datePart.split('-').map(Number);
+    const [hh,mm,ss] = timePart.split(':').map(Number);
+    return new Date(y,m-1,d,hh,mm,ss);
+  }
+
+  function formatDateTime(d){
+    const p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }
+
+  function getReleaseTime(startTime,duration){
+    if(duration === '永久') return '永久';
+    const d = parseDateTime(startTime);
+    d.setDate(d.getDate() + (duration === '七天' ? 7 : 3));
+    return formatDateTime(d);
+  }
+
+  function resolveNickname(immediate=false){
+    // 编辑状态下用户身份信息锁定，不再触发重新查询。
+    if(editingIndex >= 0) return;
+    clearTimeout(nicknameLookupTimer);
+    const id = userIdInput.value.trim();
+    nicknameResolved = false;
+    idError.style.display = 'none';
+
+    if(!id){
+      nicknameInput.value = '';
+      nicknameInput.placeholder = '输入用户ID后自动查询显示';
+      return;
+    }
+
+    const query = () => {
+      nicknameInput.value = '查询中...';
+      setTimeout(() => {
+        // 已知测试账号返回固定昵称；其他6—20位数字账号模拟数据库命中。
+        const nickname = userDirectory[id] || (/^\d{6,20}$/.test(id) ? `玩家${id.slice(-4)}` : '');
+        if(nickname){
+          nicknameInput.value = nickname;
+          nicknameResolved = true;
+          idError.style.display = 'none';
+        }else{
+          nicknameInput.value = '';
+          nicknameInput.placeholder = '未查询到该用户';
+          nicknameResolved = false;
+          idError.textContent = '未查询到该用户，请检查用户ID或唯一码';
+          idError.style.display = 'block';
+        }
+      }, immediate ? 0 : 280);
+    };
+
+    if(immediate) query();
+    else nicknameLookupTimer = setTimeout(query, 350);
+  }
+
+  function openModal(index=-1){
+    editingIndex=index;
+    idError.style.display='none';
+    idError.textContent='请输入有效的用户ID或唯一码';
+    nicknameInput.placeholder='输入用户ID后自动查询显示';
+    if(index>=0){
+      const item=data[index];
+      modalTitle.textContent='编辑黑名单用户';
+      userIdInput.value=item.userId;
+      userIdInput.readOnly=true;
+      nicknameInput.value=item.nickname;
+      nicknameInput.readOnly=true;
+      nicknameResolved=true;
+      reasonSelect.value=item.reason;
+      remarkInput.value=item.remark || '';
+      document.querySelector(`input[name="duration"][value="${item.duration}"]`).checked=true;
+    }else{
+      modalTitle.textContent='添加黑名单用户';
+      userIdInput.value='';
+      userIdInput.readOnly=false;
+      nicknameInput.value='';
+      nicknameInput.readOnly=true;
+      nicknameResolved=false;
+      reasonSelect.value='游戏异常';
+      remarkInput.value='';
+      document.querySelector('input[name="duration"][value="三天"]').checked=true;
+    }
+    mask.classList.add('show');
+    setTimeout(()=>{
+      if(index >= 0) reasonSelect.focus();
+      else userIdInput.focus();
+    },80);
+  }
+
+  function closeModal(){
+    clearTimeout(nicknameLookupTimer);
+    mask.classList.remove('show');
+  }
+
+  function toast(msg){
+    const t=document.getElementById('toast');
+    t.textContent=msg;t.classList.add('show');
+    clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove('show'),1800);
+  }
+
+  function save(){
+    const userId=userIdInput.value.trim();
+    if(!userId){
+      idError.textContent='请输入用户ID或唯一码';
+      idError.style.display='block';
+      userIdInput.focus();
+      return;
+    }
+    if(!nicknameResolved || !nicknameInput.value || nicknameInput.value === '查询中...'){
+      idError.textContent='请等待用户信息查询完成，或检查输入的用户ID/唯一码';
+      idError.style.display='block';
+      userIdInput.focus();
+      return;
+    }
+    idError.style.display='none';
+    const duration=document.querySelector('input[name="duration"]:checked').value;
+    const startTime=editingIndex>=0 ? data[editingIndex].time : nowString();
+    const payload={
+      userId,
+      nickname:nicknameInput.value.trim(),
+      duration,
+      reason:reasonSelect.value,
+      releaseTime:getReleaseTime(startTime,duration),
+      remark:remarkInput.value.trim()
+    };
+    if(editingIndex>=0){
+      Object.assign(data[editingIndex],payload);
+      toast('黑名单信息已更新');
+    }else{
+      const nextId = data.length ? Math.max(...data.map(x=>x.id))+1 : 1;
+      data.unshift({id:nextId,...payload,time:startTime});
+      toast('用户已加入黑名单');
+    }
+    closeModal();
+    render(searchInput.value);
+  }
+
+  window.editItem = index => openModal(index);
+  window.removeItem = index => {
+    const item=data[index];
+    if(confirm(`确认将用户“${item.nickname}”（${item.userId}）从黑名单中删除吗？`)){
+      data.splice(index,1);render(searchInput.value);toast('已删除');
+    }
+  };
+
+  userIdInput.addEventListener('input',()=>resolveNickname(false));
+  userIdInput.addEventListener('blur',()=>resolveNickname(true));
+  document.getElementById('addBtn').addEventListener('click',()=>openModal());
+  document.getElementById('closeBtn').addEventListener('click',closeModal);
+  document.getElementById('cancelBtn').addEventListener('click',closeModal);
+  document.getElementById('saveBtn').addEventListener('click',save);
+  document.getElementById('searchBtn').addEventListener('click',()=>render(searchInput.value));
+  searchInput.addEventListener('keydown',e=>{if(e.key==='Enter')render(searchInput.value)});
+  mask.addEventListener('click',e=>{if(e.target===mask)closeModal()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+  document.getElementById('blackMenu').addEventListener('click',()=>{searchInput.focus();toast('当前已在黑名单页面')});
+
+  render();
+</script>
+</body>
+</html>
