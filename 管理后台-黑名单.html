@@ -237,9 +237,9 @@
       <div class="form-row">
         <label class="required">封号原因</label>
         <select id="reason">
-          <option value="游戏异常">游戏异常</option>
-          <option value="游戏违规">游戏违规</option>
+          <option value="违规行为">违规行为</option>
           <option value="涉嫌赌博">涉嫌赌博</option>
+          <option value="其他">其他</option>
         </select>
       </div>
       <div class="form-row" style="align-items:start">
@@ -259,8 +259,8 @@
 <script>
   const data = [
     {id:10,userId:'16035213',nickname:'开始咕咕嘎嘎',duration:'永久',reason:'涉嫌赌博',time:'2026-06-02 17:05:04',releaseTime:'永久',remark:'异常牌局核实'},
-    {id:9,userId:'16071676',nickname:'玩家',duration:'七天',reason:'游戏违规',time:'2026-06-02 11:38:16',releaseTime:'2026-06-09 11:38:16',remark:'互通id=15248501'},
-    {id:8,userId:'15248501',nickname:'海边的风',duration:'三天',reason:'游戏异常',time:'2026-06-01 20:22:43',releaseTime:'2026-06-04 20:22:43',remark:''}
+    {id:9,userId:'16071676',nickname:'玩家',duration:'七天',reason:'违规行为',time:'2026-06-02 11:38:16',releaseTime:'2026-06-09 11:38:16',remark:'互通id=15248501'},
+    {id:8,userId:'15248501',nickname:'海边的风',duration:'三天',reason:'其他',time:'2026-06-01 20:22:43',releaseTime:'2026-06-04 20:22:43',remark:''}
   ];
 
   // 原型中使用本地数据模拟“根据用户ID查询数据库并返回昵称”。
@@ -399,7 +399,7 @@
       nicknameInput.value='';
       nicknameInput.readOnly=true;
       nicknameResolved=false;
-      reasonSelect.value='游戏异常';
+      reasonSelect.value='违规行为';
       remarkInput.value='';
       document.querySelector('input[name="duration"][value="三天"]').checked=true;
     }
